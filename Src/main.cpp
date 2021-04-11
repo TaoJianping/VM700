@@ -1,9 +1,17 @@
 #include <iostream>
 #include "common.h"
+#include "glog/logging.h"   // glog 头文件
+#include "chunk.h"
+#include "Debug.h"
+#include "vm.h"
 
-
-int main()
+int main(int argc, char** argv)
 {
-	std::cout << "Hello, World!" << std::endl;
+	FLAGS_logtostderr = true;  //输出到控制台
+	google::InitGoogleLogging(argv[0]);    // 初始化
+
+	auto v = vm();
+	v.execute(argc, argv);
+
 	return 0;
 }

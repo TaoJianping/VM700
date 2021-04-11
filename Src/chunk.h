@@ -6,18 +6,31 @@
 #define VM700_CHUNK_H
 
 #include "common.h"
+#include <vector>
+#include "value.h"
+
+using std::vector;
 
 
-enum class OpCode
+enum class OpCode : uint8_t
 {
-	OP_RETURN
+	OP_CONSTANT,
+	OP_ADD,
+	OP_SUBTRACT,
+	OP_MULTIPLY,
+	OP_DIVIDE,
+	OP_NEGATE,
+	OP_RETURN,
 };
 
-struct Chunk
+struct Chunk : public vector<uint8_t>
 {
-	int count;
-	int capacity;
-	uint8_t* code;
+	ValueArray constants {};
+	vector<size_t> lines {};
+
+	void write(uint8_t byte, size_t line);
+	void write(OpCode instruction, size_t line);
+	size_t addConstant(Value value);
 };
 
 
