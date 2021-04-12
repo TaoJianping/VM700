@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include "chunk.h"
+#include "Compiler.h"
 
 using absl::StrFormat;
 
@@ -25,11 +26,10 @@ InterpretResult vm::run()
 {
 	for (;;)
 	{
-//#ifdef DEBUG_TRACE_EXECUTION
-//#endif
+#ifdef DEBUG_TRACE_EXECUTION
 		LOG(INFO) << StrFormat("          %s", this->_stack.toString());
 		this->debugger.disassembleInstruction(this->chunk, this->ip);
-
+#endif
 		uint8_t instruction = this->readByte();
 		switch (static_cast<OpCode>(instruction))
 		{
@@ -169,7 +169,6 @@ string vm::readFile(const string& path)
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		std::string fileContent(buffer.str());
-		fileContent += '\0';
 		return fileContent;
 	}
 	LOG(ERROR) << "OPEN FILE FAILED !!!";
@@ -196,8 +195,8 @@ InterpretResult vm::interpret(const string& source)
 		return InterpretResult::INTERPRET_COMPILE_ERROR;
 	}
 
-//	this->chunk = c;
-//	this->ip = this->chunk->
+	this->chunk = c;
+	this->ip = 0;
 
 	InterpretResult result = this->run();
 	delete c;
@@ -207,5 +206,6 @@ InterpretResult vm::interpret(const string& source)
 
 bool vm::compile(const string& source, Chunk* c)
 {
-
+	auto compiler = Compiler();
+	return compiler.compile(source, c);
 }

@@ -14,7 +14,7 @@ Scanner::Scanner(string source) : source(std::move(source))
 Token Scanner::scanToken()
 {
 	this->skipWhitespace();
-
+	auto len = this->source.length();
 	this->start = this->current;
 	if (this->isAtEnd())
 		return this->makeToken(TokenType::TOKEN_EOF);

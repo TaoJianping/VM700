@@ -11,7 +11,8 @@ int main(int argc, char** argv)
 	google::InitGoogleLogging(argv[0]);    // 初始化
 
 	auto v = vm();
-	v.execute(argc, argv);
+//	v.execute(argc, argv);
+	v.runFile("../Resource/test/test1.txt");
 
 	return 0;
 }
