@@ -67,6 +67,21 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_RETURN", offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_NIL:
+	{
+		offset = this->simpleInstruction("OP_NIL", offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_TRUE:
+	{
+		offset = this->simpleInstruction("OP_TRUE", offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_FALSE:
+	{
+		offset = this->simpleInstruction("OP_FALSE", offset, opCodeName);
+		break;
+	}
 	case OpCode::OP_CONSTANT:
 	{
 		offset = this->constantInstruction("OP_CONSTANT", chunk, offset, opCodeName);
@@ -98,5 +113,24 @@ size_t Debug::constantInstruction(const char* name, Chunk* chunk, size_t offset,
 
 string Debug::printValue(Value value)
 {
-	return StrFormat("%g", value);
+	switch (value.type()) {
+	case ValueType::BOOL:
+	{
+		return value.asBool() ? "true" : "false";
+		break;
+	}
+	case ValueType::NIL:
+	{
+		return "nil";
+		break;
+	}
+	case ValueType::NUMBER:
+	{
+		return StrFormat("%g", value.asNumber());
+		break;
+	}
+	default:
+		LOG(ERROR) << "NOT SUPPORT PRINT TYPE!";
+		return "";
+	}
 }

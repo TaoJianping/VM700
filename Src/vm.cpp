@@ -15,6 +15,10 @@
 using absl::StrFormat;
 
 
+
+
+
+
 InterpretResult vm::interpret(Chunk* c)
 {
 	this->chunk = c;
@@ -53,15 +57,25 @@ InterpretResult vm::run()
 			this->binaryOp("/");
 			break;
 		}
+		case OpCode::OP_NOT:
+		{
+			this->push()
+		}
 		case OpCode::OP_NEGATE:
 		{
-			this->push(-this->pop());
+			if (!this->peek(0).isNumber())
+			{
+				this->runtimeError("Operand must be a number.");
+				return InterpretResult::INTERPRET_RUNTIME_ERROR;
+			}
+			// Todo
+			this->push(this->pop());
 			break;
 		}
 		case OpCode::OP_RETURN:
 		{
 			auto ret = this->pop();
-			LOG(INFO) << "RETURN -> " << ret;
+			LOG(INFO) << "RETURN -> " << ret.asNumber();
 			return InterpretResult::INTERPRET_OK;
 			break;
 		}
@@ -70,6 +84,21 @@ InterpretResult vm::run()
 			Value constant = this->readConstant();
 			this->push(constant);
 //			LOG(INFO) << this->debugger.printValue(constant);
+			break;
+		}
+		case OpCode::OP_NIL:
+		{
+			this->push(std::monostate());
+			break;
+		}
+		case OpCode::OP_TRUE:
+		{
+			this->push(true);
+			break;
+		}
+		case OpCode::OP_FALSE:
+		{
+			this->push(false);
 			break;
 		}
 		default:
@@ -108,27 +137,36 @@ Value vm::top()
 	return this->_stack.top();
 }
 
-void vm::binaryOp(string op)
+InterpretResult vm::binaryOp(const string& op)
 {
 	do
 	{
-		double b = this->pop();
-		double a = this->pop();
+		Value b = this->pop();
+		Value a = this->pop();
+		if (!this->peek(0).isNumber() || !this->peek(1).isNumber())
+		{
+			this->runtimeError("Operands must be numbers.");
+			return InterpretResult::INTERPRET_RUNTIME_ERROR;
+		}
+
+		auto vb = b.asNumber();
+		auto va = a.asNumber();
+
 		if (op == "*")
 		{
-			this->push(a * b);
+			this->push(va * vb);
 		}
 		else if (op == "/")
 		{
-			this->push(a / b);
+			this->push(va / vb);
 		}
 		else if (op == "+")
 		{
-			this->push(a + b);
+			this->push(va + vb);
 		}
 		else if (op == "-")
 		{
-			this->push(a - b);
+			this->push(va - vb);
 		}
 	} while (false);
 }
@@ -208,4 +246,24 @@ bool vm::compile(const string& source, Chunk* c)
 {
 	auto compiler = Compiler();
 	return compiler.compile(source, c);
+}
+
+Value vm::peek(int distance)
+{
+	auto topStack = this->_stack.size();
+	return this->_stack[topStack - 1 - distance];
+}
+
+void vm::runtimeError(const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+	fputs("\n", stderr);
+
+//	size_t instruction = this->ip - this->chunk->code - 1;
+	int line = this->chunk->lines[this->ip - 1];
+	fprintf(stderr, "[line %d] in script\n", line);
+//	resetStack();
 }

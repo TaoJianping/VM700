@@ -30,7 +30,7 @@ string VmStack::toString()
 	string ret {};
 	for (auto value : *this)
 	{
-		ret += StrFormat("[ %g ]", value);
+		ret += StrFormat("[ %g ]", value.asNumber());
 	}
 
 	return ret;

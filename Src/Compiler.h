@@ -33,8 +33,6 @@ enum class Precedence : int
 	PREC_PRIMARY
 };
 
-typedef void (* ParseFn)();
-
 struct ParseRule
 {
 	std::function<void()> prefix;
@@ -87,6 +85,8 @@ private:
 	void binary();
 
 	void number();
+
+	void literal();
 
 public:
 	Compiler();

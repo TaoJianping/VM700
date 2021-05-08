@@ -28,15 +28,18 @@ private:
 	Debug debugger {};
 	VmStack _stack{};
 
-	void binaryOp(string op);
+	InterpretResult binaryOp(const string& op);
 	uint8_t readByte();
 	Value readConstant();
 	InterpretResult run();
 	void push(Value value);
 	Value pop();
 	Value top();
+	Value peek(int distance);
 	string readFile(const string& path);
 	bool compile(const string& source, Chunk* c);
+	void runtimeError(const char* format, ...);
+
 public:
 	InterpretResult interpret(Chunk* chunk);
 	InterpretResult interpret(const string& source);

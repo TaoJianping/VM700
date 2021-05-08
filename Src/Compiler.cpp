@@ -5,8 +5,6 @@
 #include "Compiler.h"
 
 #include <utility>
-#include "absl/strings/str_format.h"
-#include "glog/logging.h"
 
 bool Compiler::compile(const string& source, Chunk* chunk)
 {
@@ -112,7 +110,8 @@ void Compiler::endCompiler()
 {
 	this->emitReturn();
 #ifdef DEBUG_PRINT_CODE
-	if (!this->parser->hadError) {
+	if (!this->parser->hadError)
+	{
 		this->debugger.disassembleChunk(this->compilingChunk, "code");
 	}
 #endif
@@ -165,7 +164,11 @@ void Compiler::unary()
 	case TokenType::TOKEN_MINUS:
 		this->emitByte(OpCode::OP_NEGATE);
 		break;
+	case TokenType::TOKEN_BANG:
+		this->emitByte(OpCode::OP_NOT);
+		break;
 	default:
+		this->error("UNSUPPORT UNARY OPERATOR TYPE");
 		return; // Unreachable.
 	}
 }
@@ -176,7 +179,7 @@ void Compiler::binary()
 	TokenType operatorType = this->parser->previous.type;
 
 	// Compile the right operand.
-	ParseRule* rule = getRule(operatorType);
+	ParseRule* rule = this->getRule(operatorType);
 	parsePrecedence((Precedence)(static_cast<int>(rule->precedence) + 1));
 
 	// Emit the operator instruction.
@@ -199,12 +202,40 @@ void Compiler::binary()
 	}
 }
 
+void Compiler::literal()
+{
+	switch (this->parser->previous.type)
+	{
+	case TokenType::TOKEN_FALSE:
+		this->emitByte(OpCode::OP_FALSE);
+		break;
+	case TokenType::TOKEN_NIL:
+		this->emitByte(OpCode::OP_NIL);
+		break;
+	case TokenType::TOKEN_TRUE:
+		this->emitByte(OpCode::OP_TRUE);
+		break;
+	default:
+		return; // Unreachable.
+	}
+}
+
+
 Compiler::Compiler()
 {
-	auto funcReadNumber = [this]() { this->number(); };
-	auto funcGrouping = [this]() { this->grouping(); };
-	auto funcUnary = [this]() { this->unary(); };
-	auto funcBinary = [this]() { this->binary(); };
+	auto funcReadNumber = [this]()
+	{ this->number(); };
+	auto funcGrouping = [this]()
+	{ this->grouping(); };
+	auto funcUnary = [this]()
+	{ this->unary(); };
+	auto funcBinary = [this]()
+	{ this->binary(); };
+
+	auto funcLiteral = [this]()
+	{
+		this->literal();
+	};
 
 	this->rules = map<TokenType, ParseRule>{
 			{ TokenType::TOKEN_LEFT_PAREN,    { funcGrouping,   nullptr,    Precedence::PREC_NONE }},
@@ -218,7 +249,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_TERM }},
 			{ TokenType::TOKEN_SLASH,         { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
 			{ TokenType::TOKEN_STAR,          { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
-			{ TokenType::TOKEN_BANG,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_BANG,          { funcUnary,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_BANG_EQUAL,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_EQUAL,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_EQUAL_EQUAL,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -232,17 +263,17 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_ELSE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_FALSE,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_FALSE,         { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_FOR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_FUN,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_IF,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_NIL,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_NIL,           { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_OR,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_PRINT,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_RETURN,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_SUPER,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_THIS,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_TRUE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_TRUE,          { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_VAR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_WHILE,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_ERROR,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -267,7 +298,8 @@ void Compiler::parsePrecedence(Precedence precedence)
 
 	prefixRule();
 
-	while (precedence <= this->getRule(this->parser->current.type)->precedence) {
+	while (precedence <= this->getRule(this->parser->current.type)->precedence)
+	{
 		this->advance();
 		auto infixRule = getRule(parser->previous.type)->infix;
 		infixRule();
