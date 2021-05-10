@@ -206,7 +206,7 @@ Token Scanner::identifier()
 
 TokenType Scanner::identifierType()
 {
-	switch (this->source.at(this->current))
+	switch (this->source.at(this->start))
 	{
 	case 'a':
 		return this->checkKeyword(1, 2, "nd", TokenType::TOKEN_AND);
@@ -262,8 +262,8 @@ TokenType Scanner::identifierType()
 
 TokenType Scanner::checkKeyword(int startIndex, int length, string rest, TokenType type)
 {
-	if (this->current - this->start == length &&
-		this->source.substr(this->start, (this->current - this->start)) == rest)
+	if (this->current - this->start == (startIndex + length) &&
+		this->source.substr(this->start + startIndex, length) == rest)
 	{
 		return type;
 	}

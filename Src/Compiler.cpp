@@ -246,7 +246,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_DOT,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_MINUS,         { funcUnary,      funcBinary, Precedence::PREC_TERM }},
 			{ TokenType::TOKEN_PLUS,          { nullptr,        funcBinary, Precedence::PREC_TERM }},
-			{ TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_TERM }},
+			{ TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_SLASH,         { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
 			{ TokenType::TOKEN_STAR,          { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
 			{ TokenType::TOKEN_BANG,          { funcUnary,        nullptr,    Precedence::PREC_NONE }},
@@ -301,7 +301,7 @@ void Compiler::parsePrecedence(Precedence precedence)
 	while (precedence <= this->getRule(this->parser->current.type)->precedence)
 	{
 		this->advance();
-		auto infixRule = getRule(parser->previous.type)->infix;
+		auto infixRule = this->getRule(parser->previous.type)->infix;
 		infixRule();
 	}
 }

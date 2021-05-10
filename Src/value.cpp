@@ -43,3 +43,13 @@ bool Value::asBool()
 {
 	return std::get<bool>(*this);
 }
+
+bool Value::isNil()
+{
+	return this->type() == ValueType::NIL;
+}
+
+bool Value::isBool()
+{
+	return this->type() == ValueType::BOOL;
+}

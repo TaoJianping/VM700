@@ -36,6 +36,9 @@ private:
 	Value pop();
 	Value top();
 	Value peek(int distance);
+
+	bool isFalsey(Value value);
+
 	string readFile(const string& path);
 	bool compile(const string& source, Chunk* c);
 	void runtimeError(const char* format, ...);

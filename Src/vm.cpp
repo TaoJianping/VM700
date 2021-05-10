@@ -59,7 +59,8 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_NOT:
 		{
-			this->push()
+			this->push(this->isFalsey(this->pop()));
+			break;
 		}
 		case OpCode::OP_NEGATE:
 		{
@@ -266,4 +267,9 @@ void vm::runtimeError(const char* format, ...)
 	int line = this->chunk->lines[this->ip - 1];
 	fprintf(stderr, "[line %d] in script\n", line);
 //	resetStack();
+}
+
+bool vm::isFalsey(Value value)
+{
+	return value.isNil() || (value.isBool() && !value.asBool());
 }

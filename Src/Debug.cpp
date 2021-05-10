@@ -57,6 +57,11 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_DIVIDE", offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_NOT:
+	{
+		offset = this->simpleInstruction("OP_NOT", offset, opCodeName);
+		break;
+	}
 	case OpCode::OP_NEGATE:
 	{
 		offset = this->simpleInstruction("OP_NEGATE", offset, opCodeName);

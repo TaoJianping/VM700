@@ -25,6 +25,9 @@ public:
 	bool isNumber();
 	double asNumber();
 
+	bool isNil();
+
+	bool isBool();
 	bool asBool();
 
 	Value(double num);
