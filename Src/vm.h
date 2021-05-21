@@ -38,10 +38,13 @@ private:
 	Value peek(int distance);
 
 	bool isFalsey(Value value);
+	bool valuesEqual(Value a, Value b);
 
 	string readFile(const string& path);
 	bool compile(const string& source, Chunk* c);
 	void runtimeError(const char* format, ...);
+
+
 
 public:
 	InterpretResult interpret(Chunk* chunk);

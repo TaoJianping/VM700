@@ -92,6 +92,21 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->constantInstruction("OP_CONSTANT", chunk, offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_EQUAL:
+	{
+		offset = this->constantInstruction("OP_EQUAL", chunk, offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_GREATER:
+	{
+		offset = this->constantInstruction("OP_GREATER", chunk, offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_LESS:
+	{
+		offset = this->constantInstruction("OP_LESS", chunk, offset, opCodeName);
+		break;
+	}
 	default:
 	{
 		LOG(ERROR) << StrFormat("Unknown opcode %d\n", static_cast<uint8_t>(instruction));

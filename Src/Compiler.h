@@ -66,6 +66,8 @@ private:
 
 	void emitBytes(OpCode code, uint8_t byte2);
 
+	void emitBytes(OpCode code, OpCode code2);
+
 	void emitConstant(double value);
 
 	void emitReturn();

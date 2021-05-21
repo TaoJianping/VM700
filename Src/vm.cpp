@@ -15,10 +15,6 @@
 using absl::StrFormat;
 
 
-
-
-
-
 InterpretResult vm::interpret(Chunk* c)
 {
 	this->chunk = c;
@@ -102,6 +98,23 @@ InterpretResult vm::run()
 			this->push(false);
 			break;
 		}
+		case OpCode::OP_GREATER:
+		{
+			this->binaryOp(">");
+			break;
+		}
+		case OpCode::OP_LESS:
+		{
+			this->binaryOp("<");
+			break;
+		}
+		case OpCode::OP_EQUAL:
+		{
+			Value b = this->pop();
+			Value a = this->pop();
+			this->push(valuesEqual(a, b));
+			break;
+		}
 		default:
 			LOG(ERROR) << "NOT SUPPORT INSTRUCTION";
 		}
@@ -142,14 +155,14 @@ InterpretResult vm::binaryOp(const string& op)
 {
 	do
 	{
-		Value b = this->pop();
-		Value a = this->pop();
+
 		if (!this->peek(0).isNumber() || !this->peek(1).isNumber())
 		{
 			this->runtimeError("Operands must be numbers.");
 			return InterpretResult::INTERPRET_RUNTIME_ERROR;
 		}
-
+		Value b = this->pop();
+		Value a = this->pop();
 		auto vb = b.asNumber();
 		auto va = a.asNumber();
 
@@ -169,7 +182,17 @@ InterpretResult vm::binaryOp(const string& op)
 		{
 			this->push(va - vb);
 		}
+		else if (op == ">")
+		{
+			this->push(va > vb);
+		}
+		else if (op == "<")
+		{
+			this->push(va < vb);
+		}
 	} while (false);
+
+	return InterpretResult::INTERPRET_OK;
 }
 
 void vm::execute(int argc, char** argv)
@@ -272,4 +295,25 @@ void vm::runtimeError(const char* format, ...)
 bool vm::isFalsey(Value value)
 {
 	return value.isNil() || (value.isBool() && !value.asBool());
+}
+
+bool vm::valuesEqual(Value a, Value b)
+{
+	if (a.index() != b.index()) return false;
+	switch (a.type()) {
+	case ValueType::BOOL:
+	{
+		return a.asBool() == b.asBool();
+	}
+	case ValueType::NIL:
+	{
+		return true;
+	}
+	case ValueType::NUMBER:
+	{
+		return a.asNumber() == b.asNumber();
+	}
+	default:
+		return false; // Unreachable.
+	}
 }

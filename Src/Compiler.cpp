@@ -100,6 +100,14 @@ void Compiler::emitBytes(uint8_t byte1, uint8_t byte2)
 	this->emitByte(byte2);
 }
 
+
+void Compiler::emitBytes(OpCode code, OpCode code2)
+{
+	this->emitByte(static_cast<uint8_t>(code));
+	this->emitByte(static_cast<uint8_t>(code2));
+}
+
+
 void Compiler::emitBytes(OpCode code, uint8_t byte2)
 {
 	this->emitByte(code);
@@ -197,6 +205,24 @@ void Compiler::binary()
 	case TokenType::TOKEN_SLASH:
 		emitByte(OpCode::OP_DIVIDE);
 		break;
+	case TokenType::TOKEN_BANG_EQUAL:
+		emitBytes(OpCode::OP_EQUAL, OpCode::OP_NOT);
+		break;
+	case TokenType::TOKEN_EQUAL_EQUAL:
+		emitByte(OpCode::OP_EQUAL);
+		break;
+	case TokenType::TOKEN_GREATER:
+		emitByte(OpCode::OP_GREATER);
+		break;
+	case TokenType::TOKEN_GREATER_EQUAL:
+		emitBytes(OpCode::OP_LESS, OpCode::OP_NOT);
+		break;
+	case TokenType::TOKEN_LESS:
+		emitByte(OpCode::OP_LESS);
+		break;
+	case TokenType::TOKEN_LESS_EQUAL:
+		emitBytes(OpCode::OP_GREATER, OpCode::OP_NOT);
+		break;
 	default:
 		return; // Unreachable.
 	}
@@ -249,31 +275,31 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_SLASH,         { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
 			{ TokenType::TOKEN_STAR,          { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
-			{ TokenType::TOKEN_BANG,          { funcUnary,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_BANG_EQUAL,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_BANG,          { funcUnary,      nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_BANG_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
 			{ TokenType::TOKEN_EQUAL,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_EQUAL_EQUAL,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_GREATER,       { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_GREATER_EQUAL, { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_LESS,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_EQUAL_EQUAL,   { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
+			{ TokenType::TOKEN_GREATER,       { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+			{ TokenType::TOKEN_GREATER_EQUAL, { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+			{ TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_IDENTIFIER,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_STRING,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_ELSE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_FALSE,         { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_FALSE,         { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_FOR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_FUN,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_IF,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_NIL,           { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_NIL,           { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_OR,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_PRINT,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_RETURN,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_SUPER,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_THIS,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_TRUE,          { funcLiteral,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_TRUE,          { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_VAR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_WHILE,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_ERROR,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
