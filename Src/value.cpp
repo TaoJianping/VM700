@@ -29,9 +29,9 @@ Value::Value(const Value& v): variant<std::monostate, bool, double>(v)
 
 }
 
-Value::Value(std::monostate num)
+Value::Value(std::monostate num): variant<std::monostate, bool, double>(num)
 {
-	*this = std::monostate();
+
 }
 
 ValueType Value::type()
@@ -52,4 +52,28 @@ bool Value::isNil()
 bool Value::isBool()
 {
 	return this->type() == ValueType::BOOL;
+}
+
+string Value::toString()
+{
+	if (this->isNil())
+	{
+		return std::string("Nil");
+	}
+	if (this->isBool())
+	{
+		if (this->asBool())
+		{
+			return std::string("true");
+		}
+		else
+		{
+			return std::string("false");
+		}
+	}
+	if (this->isNumber())
+	{
+		std::string s = absl::StrFormat("[ %g ]", this->asNumber());
+		return s;
+	}
 }

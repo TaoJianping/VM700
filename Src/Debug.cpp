@@ -94,17 +94,17 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 	}
 	case OpCode::OP_EQUAL:
 	{
-		offset = this->constantInstruction("OP_EQUAL", chunk, offset, opCodeName);
+		offset = this->simpleInstruction("OP_EQUAL", offset, opCodeName);
 		break;
 	}
 	case OpCode::OP_GREATER:
 	{
-		offset = this->constantInstruction("OP_GREATER", chunk, offset, opCodeName);
+		offset = this->simpleInstruction("OP_GREATER", offset, opCodeName);
 		break;
 	}
 	case OpCode::OP_LESS:
 	{
-		offset = this->constantInstruction("OP_LESS", chunk, offset, opCodeName);
+		offset = this->simpleInstruction("OP_LESS", offset, opCodeName);
 		break;
 	}
 	default:

@@ -72,7 +72,7 @@ InterpretResult vm::run()
 		case OpCode::OP_RETURN:
 		{
 			auto ret = this->pop();
-			LOG(INFO) << "RETURN -> " << ret.asNumber();
+			LOG(INFO) << "RETURN -> " << ret.toString();
 			return InterpretResult::INTERPRET_OK;
 			break;
 		}

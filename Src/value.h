@@ -8,9 +8,13 @@
 #include <vector>
 #include <variant>
 #include <cstdint>
+#include <string>
+#include "absl/strings/str_format.h"
 
 using std::vector;
 using std::variant;
+using std::string;
+using Nil = std::monostate;
 
 enum class ValueType : int32_t
 {
@@ -19,7 +23,7 @@ enum class ValueType : int32_t
 	NUMBER,
 };
 
-class Value : public variant<std::monostate, bool, double>
+class Value : public variant<Nil, bool, double>
 {
 public:
 	bool isNumber();
@@ -35,6 +39,7 @@ public:
 	Value(const Value& v);
 
 	ValueType type();
+	string toString();
 };
 
 struct ValueArray : public vector<Value>

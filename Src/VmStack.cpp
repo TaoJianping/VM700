@@ -30,7 +30,23 @@ string VmStack::toString()
 	string ret {};
 	for (auto value : *this)
 	{
-		ret += StrFormat("[ %g ]", value.asNumber());
+		if (value.type() == ValueType::NUMBER)
+		{
+			ret += StrFormat("[ %g ]", value.asNumber());
+		}
+		else if (value.type() == ValueType::NIL)
+		{
+			ret += "[ Nil ]";
+		}
+		else if (value.type() == ValueType::BOOL)
+		{
+			if (value.asBool())
+			{
+				ret  += "[ true ]";
+			} else {
+				ret  += "[ false ]";
+			}
+		}
 	}
 
 	return ret;
