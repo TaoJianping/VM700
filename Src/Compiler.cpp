@@ -6,7 +6,7 @@
 
 #include <utility>
 
-bool Compiler::compile(const string& source, Chunk* chunk)
+bool Compiler::compile(const std::string& source, Chunk* chunk)
 {
 	this->scanner = new Scanner(source);
 	this->parser = new Parser(this->scanner);
@@ -135,6 +135,12 @@ void Compiler::emitConstant(double value)
 	this->emitBytes(OpCode::OP_CONSTANT, makeConstant(value));
 }
 
+void Compiler::emitConstant(string value)
+{
+	auto v = new ObjString(std::move(value));
+	this->emitBytes(OpCode::OP_CONSTANT, makeConstant(v));
+}
+
 uint8_t Compiler::makeConstant(Value value)
 {
 	std::size_t constant = this->compilingChunk->addConstant(value);
@@ -246,6 +252,12 @@ void Compiler::literal()
 	}
 }
 
+void Compiler::readString()
+{
+	auto raw = this->parser->previous.lexeme;
+	auto str = raw.substr(1, raw.length() - 2);
+	this->emitConstant(str);
+}
 
 Compiler::Compiler()
 {
@@ -261,6 +273,11 @@ Compiler::Compiler()
 	auto funcLiteral = [this]()
 	{
 		this->literal();
+	};
+
+	auto funcString = [this]()
+	{
+		this->readString();
 	};
 
 	this->rules = map<TokenType, ParseRule>{
@@ -284,7 +301,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_IDENTIFIER,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_STRING,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_STRING,        { funcString,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},

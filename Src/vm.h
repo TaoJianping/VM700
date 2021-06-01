@@ -27,6 +27,7 @@ private:
 	size_t ip;
 	Debug debugger {};
 	VmStack _stack{};
+	Object* objects = nullptr;
 
 	InterpretResult binaryOp(const string& op);
 	uint8_t readByte();

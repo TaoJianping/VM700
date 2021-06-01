@@ -19,17 +19,22 @@ double Value::asNumber()
 	return std::get<double>(*this);
 }
 
-Value::Value(double num): variant<std::monostate, bool, double>(num)
+Value::Value(double num): LoxType(num)
 {
 
 }
 
-Value::Value(const Value& v): variant<std::monostate, bool, double>(v)
+Value::Value(const Value& v): LoxType(v)
 {
 
 }
 
-Value::Value(std::monostate num): variant<std::monostate, bool, double>(num)
+Value::Value(std::monostate num):LoxType(num)
+{
+
+}
+
+Value::Value(Object* obj): LoxType(obj)
 {
 
 }
@@ -76,4 +81,7 @@ string Value::toString()
 		std::string s = absl::StrFormat("[ %g ]", this->asNumber());
 		return s;
 	}
+
+	LOG(ERROR) << "NOT SUPPORT TOSTRING TYPE!!!";
+	return "";
 }

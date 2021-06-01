@@ -9,7 +9,10 @@
 #include <variant>
 #include <cstdint>
 #include <string>
+
+#include "Object.h"
 #include "absl/strings/str_format.h"
+#include "glog/logging.h"
 
 using std::vector;
 using std::variant;
@@ -21,9 +24,12 @@ enum class ValueType : int32_t
 	NIL,
 	BOOL,
 	NUMBER,
+	Object,
 };
 
-class Value : public variant<Nil, bool, double>
+using LoxType = variant<Nil, bool, double, Object*>;
+
+class Value : public LoxType
 {
 public:
 	bool isNumber();
@@ -35,8 +41,9 @@ public:
 	bool asBool();
 
 	Value(double num);
-	Value(std::monostate nil);
+	Value(Nil nil);
 	Value(const Value& v);
+	Value(Object* obj);
 
 	ValueType type();
 	string toString();

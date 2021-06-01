@@ -70,6 +70,8 @@ private:
 
 	void emitConstant(double value);
 
+	void emitConstant(string value);
+
 	void emitReturn();
 
 	void endCompiler();
@@ -89,6 +91,8 @@ private:
 	void number();
 
 	void literal();
+
+	void readString();
 
 public:
 	Compiler();
