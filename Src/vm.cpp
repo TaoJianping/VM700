@@ -197,11 +197,16 @@ InterpretResult vm::binaryOp(const string& op)
 
 void vm::execute(int argc, char** argv)
 {
-	if (argc == 1) {
+	if (argc == 1)
+	{
 		this->repl();
-	} else if (argc == 2) {
+	}
+	else if (argc == 2)
+	{
 		this->runFile(argv[1]);
-	} else {
+	}
+	else
+	{
 		fprintf(stderr, "Usage: clox [path]\n");
 		exit(64);
 	}
@@ -210,10 +215,12 @@ void vm::execute(int argc, char** argv)
 void vm::repl()
 {
 	char line[1024];
-	for (;;) {
+	for (;;)
+	{
 		printf("> ");
 
-		if (!fgets(line, sizeof(line), stdin)) {
+		if (!fgets(line, sizeof(line), stdin))
+		{
 			printf("\n");
 			break;
 		}
@@ -252,7 +259,8 @@ InterpretResult vm::interpret(const string& source)
 {
 	auto c = new Chunk();
 
-	if (!this->compile(source, c)) {
+	if (!this->compile(source, c))
+	{
 		delete c;
 		return InterpretResult::INTERPRET_COMPILE_ERROR;
 	}
@@ -300,7 +308,8 @@ bool vm::isFalsey(Value value)
 bool vm::valuesEqual(Value a, Value b)
 {
 	if (a.index() != b.index()) return false;
-	switch (a.type()) {
+	switch (a.type())
+	{
 	case ValueType::BOOL:
 	{
 		return a.asBool() == b.asBool();
@@ -315,5 +324,36 @@ bool vm::valuesEqual(Value a, Value b)
 	}
 	default:
 		return false; // Unreachable.
+	}
+}
+
+vm::~vm()
+{
+	this->freeObjects();
+}
+
+void vm::freeObjects()
+{
+	if (this->chunk)
+	{
+		auto obj = this->chunk->objects;
+		while (obj != nullptr)
+		{
+			auto next = obj->next;
+			freeObject(obj);
+			obj = next;
+		}
+	}
+}
+
+void vm::freeObject(Object* obj)
+{
+	switch (obj->type)
+	{
+	case ObjType::OBJ_STRING:
+	{
+		auto str = dynamic_cast<ObjString*>(obj);
+		delete str;
+	}
 	}
 }

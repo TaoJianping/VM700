@@ -22,3 +22,9 @@ size_t Chunk::addConstant(Value value)
 	this->constants.push_back(value);
 	return this->constants.size() - 1;
 }
+
+void Chunk::addObjects(Object* obj)
+{
+	obj->next = this->objects;
+	this->objects = obj;
+}

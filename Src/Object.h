@@ -20,6 +20,8 @@ class Object
 public:
 	ObjType type;
 	Object* next;
+
+	virtual ~Object();
 };
 
 class ObjString: public Object, public string

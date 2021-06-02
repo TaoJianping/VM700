@@ -47,6 +47,15 @@ string VmStack::toString()
 				ret  += "[ false ]";
 			}
 		}
+		else if (value.type() == ValueType::Object)
+		{
+			auto obj = value.asObject();
+			if (obj->type == ObjType::OBJ_STRING)
+			{
+				auto str = dynamic_cast<ObjString*>(obj);
+				ret += StrFormat("[ %s ]", *str);
+			}
+		}
 	}
 
 	return ret;

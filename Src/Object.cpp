@@ -10,3 +10,8 @@ ObjString::ObjString(string str): Object(), string(std::move(str))
 {
 	this->type = ObjType::OBJ_STRING;
 }
+
+Object::~Object()
+{
+
+}

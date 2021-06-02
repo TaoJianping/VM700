@@ -40,6 +40,9 @@ public:
 	bool isBool();
 	bool asBool();
 
+	Object* asObject();
+	bool isObject();
+
 	Value(double num);
 	Value(Nil nil);
 	Value(const Value& v);

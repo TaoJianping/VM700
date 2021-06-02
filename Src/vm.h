@@ -27,7 +27,6 @@ private:
 	size_t ip;
 	Debug debugger {};
 	VmStack _stack{};
-	Object* objects = nullptr;
 
 	InterpretResult binaryOp(const string& op);
 	uint8_t readByte();
@@ -44,8 +43,8 @@ private:
 	string readFile(const string& path);
 	bool compile(const string& source, Chunk* c);
 	void runtimeError(const char* format, ...);
-
-
+	void freeObjects();
+	void freeObject(Object* obj);
 
 public:
 	InterpretResult interpret(Chunk* chunk);
@@ -53,6 +52,7 @@ public:
 	void execute(int argc, char** argv);
 	void repl();
 	void runFile(const string& path);
+	~vm();
 };
 
 

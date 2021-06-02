@@ -133,24 +133,5 @@ size_t Debug::constantInstruction(const char* name, Chunk* chunk, size_t offset,
 
 string Debug::printValue(Value value)
 {
-	switch (value.type()) {
-	case ValueType::BOOL:
-	{
-		return value.asBool() ? "true" : "false";
-		break;
-	}
-	case ValueType::NIL:
-	{
-		return "nil";
-		break;
-	}
-	case ValueType::NUMBER:
-	{
-		return StrFormat("%g", value.asNumber());
-		break;
-	}
-	default:
-		LOG(ERROR) << "NOT SUPPORT PRINT TYPE!";
-		return "";
-	}
+	return value.toString();
 }

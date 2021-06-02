@@ -3,6 +3,7 @@
 //
 
 #include "value.h"
+#include "absl/strings/str_format.h"
 
 void ValueArray::write(Value value)
 {
@@ -49,6 +50,11 @@ bool Value::asBool()
 	return std::get<bool>(*this);
 }
 
+Object* Value::asObject()
+{
+	return std::get<Object*>(*this);
+}
+
 bool Value::isNil()
 {
 	return this->type() == ValueType::NIL;
@@ -81,7 +87,23 @@ string Value::toString()
 		std::string s = absl::StrFormat("[ %g ]", this->asNumber());
 		return s;
 	}
+	if (this->isObject())
+	{
+		auto obj = this->asObject();
+		std::string s{};
+		if (obj->type == ObjType::OBJ_STRING)
+		{
+			auto str = dynamic_cast<ObjString*>(obj);
+			s = absl::StrFormat("[ %s ]", *str);
+		}
+		return s;
+	}
 
 	LOG(ERROR) << "NOT SUPPORT TOSTRING TYPE!!!";
 	return "";
+}
+
+bool Value::isObject()
+{
+	return this->type() == ValueType::Object;
 }

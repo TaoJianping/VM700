@@ -17,6 +17,10 @@ bool Compiler::compile(const std::string& source, Chunk* chunk)
 	this->consume(TokenType::TOKEN_EOF, "Expect end of expression.");
 
 	this->endCompiler();
+
+	delete this->scanner;
+	delete this->parser;
+
 	return !this->parser->hadError;
 }
 
