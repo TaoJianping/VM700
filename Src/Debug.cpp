@@ -67,6 +67,11 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_NEGATE", offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_PRINT:
+	{
+		offset = this->simpleInstruction("OP_PRINT", offset, opCodeName);
+		break;
+	}
 	case OpCode::OP_RETURN:
 	{
 		offset = this->simpleInstruction("OP_RETURN", offset, opCodeName);
@@ -85,6 +90,11 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 	case OpCode::OP_FALSE:
 	{
 		offset = this->simpleInstruction("OP_FALSE", offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_POP:
+	{
+		offset = this->simpleInstruction("OP_POP", offset, opCodeName);
 		break;
 	}
 	case OpCode::OP_CONSTANT:

@@ -69,10 +69,15 @@ InterpretResult vm::run()
 			this->push(this->pop());
 			break;
 		}
+		case OpCode::OP_PRINT: {
+			auto ret = this->pop();
+			LOG(INFO) << ret.toString() << "\n";
+			break;
+		}
 		case OpCode::OP_RETURN:
 		{
-			auto ret = this->pop();
-			LOG(INFO) << "RETURN -> " << ret.toString();
+//			auto ret = this->pop();
+//			LOG(INFO) << "RETURN -> " << ret.toString();
 			return InterpretResult::INTERPRET_OK;
 			break;
 		}
@@ -96,6 +101,11 @@ InterpretResult vm::run()
 		case OpCode::OP_FALSE:
 		{
 			this->push(false);
+			break;
+		}
+		case OpCode::OP_POP:
+		{
+			this->pop();
 			break;
 		}
 		case OpCode::OP_GREATER:

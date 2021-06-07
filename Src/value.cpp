@@ -84,7 +84,7 @@ string Value::toString()
 	}
 	if (this->isNumber())
 	{
-		std::string s = absl::StrFormat("[ %g ]", this->asNumber());
+		std::string s = absl::StrFormat(" %g ", this->asNumber());
 		return s;
 	}
 	if (this->isObject())
@@ -94,7 +94,7 @@ string Value::toString()
 		if (obj->type == ObjType::OBJ_STRING)
 		{
 			auto str = dynamic_cast<ObjString*>(obj);
-			s = absl::StrFormat("[ %s ]", *str);
+			s = absl::StrFormat(" %s ", *str);
 		}
 		return s;
 	}

@@ -13,8 +13,11 @@ bool Compiler::compile(const std::string& source, Chunk* chunk)
 	this->compilingChunk = chunk;
 
 	this->advance();
-	this->expression();
-	this->consume(TokenType::TOKEN_EOF, "Expect end of expression.");
+
+	while (!this->match(TokenType::TOKEN_EOF))
+	{
+		this->declaration();
+	}
 
 	this->endCompiler();
 
@@ -88,6 +91,18 @@ void Compiler::consume(TokenType type, const string& message)
 	this->errorAtCurrent(message);
 }
 
+bool Compiler::match(TokenType type)
+{
+	if (!this->check(type)) return false;
+	this->advance();
+	return true;
+}
+
+bool Compiler::check(TokenType type)
+{
+	return this->parser->current.type == type;
+}
+
 void Compiler::emitByte(uint8_t byte)
 {
 	this->compilingChunk->write(byte, this->parser->previous.line);
@@ -104,13 +119,11 @@ void Compiler::emitBytes(uint8_t byte1, uint8_t byte2)
 	this->emitByte(byte2);
 }
 
-
 void Compiler::emitBytes(OpCode code, OpCode code2)
 {
 	this->emitByte(static_cast<uint8_t>(code));
 	this->emitByte(static_cast<uint8_t>(code2));
 }
-
 
 void Compiler::emitBytes(OpCode code, uint8_t byte2)
 {
@@ -263,6 +276,32 @@ void Compiler::readString()
 	this->emitConstant(str);
 }
 
+void Compiler::declaration()
+{
+	this->statement();
+}
+
+void Compiler::statement()
+{
+	if (this->match(TokenType::TOKEN_PRINT)) {
+		this->printStatement();
+	}
+}
+
+void Compiler::printStatement()
+{
+	this->expression();
+	this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after value.");
+	this->emitByte(OpCode::OP_PRINT);
+}
+
+void Compiler::expressionStatement()
+{
+	this->expression();
+	this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after expression.");
+	this->emitByte(OpCode::OP_POP);
+}
+
 Compiler::Compiler()
 {
 	auto funcReadNumber = [this]()
@@ -305,7 +344,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_IDENTIFIER,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_STRING,        { funcString,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_STRING,        { funcString,     nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -352,7 +391,4 @@ void Compiler::parsePrecedence(Precedence precedence)
 		infixRule();
 	}
 }
-
-
-
 

@@ -58,6 +58,10 @@ private:
 
 	void consume(TokenType type, const string& message);
 
+	bool match(TokenType type);
+
+	bool check(TokenType type);
+
 	void emitByte(uint8_t byte);
 
 	void emitByte(OpCode code);
@@ -93,6 +97,14 @@ private:
 	void literal();
 
 	void readString();
+
+	void declaration();
+
+	void statement();
+
+	void printStatement();
+
+	void expressionStatement();
 
 public:
 	Compiler();
