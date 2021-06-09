@@ -6,11 +6,13 @@
 #define VM700_VM_H
 
 #include <stack>
+#include <map>
 
 #include "chunk.h"
 #include "Debug.h"
 #include "VmStack.h"
 
+using std::map;
 
 enum class InterpretResult
 {
@@ -27,6 +29,7 @@ private:
 	size_t ip;
 	Debug debugger {};
 	VmStack _stack{};
+	map<ObjString, Value> globals;
 
 	InterpretResult binaryOp(const string& op);
 	uint8_t readByte();
@@ -37,6 +40,7 @@ private:
 	Value top();
 	Value peek(int distance);
 
+	void addObject(Object* object);
 	bool isFalsey(Value value);
 	bool valuesEqual(Value a, Value b);
 

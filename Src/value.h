@@ -48,6 +48,8 @@ public:
 	Value(const Value& v);
 	Value(Object* obj);
 
+	Value() = default;
+
 	ValueType type();
 	string toString();
 };

@@ -118,6 +118,38 @@ InterpretResult vm::run()
 			this->binaryOp("<");
 			break;
 		}
+		case OpCode::OP_GET_GLOBAL:
+		{
+			auto name = this->chunk->constants.at(this->readByte());
+			auto val = name.asObject();
+			auto str = dynamic_cast<ObjString*>(val);
+
+			if (this->globals.count(*str) == 0)
+			{
+				runtimeError("Undefined variable '%s'.", str);
+				return InterpretResult::INTERPRET_COMPILE_ERROR;
+			}
+
+			this->push(this->globals.at(*str));
+			break;
+		}
+		case OpCode::OP_DEFINE_GLOBAL:
+		{
+			auto name = this->chunk->constants.at(this->readByte());
+			auto value = name.asObject();
+			if (value->type != ObjType::OBJ_STRING)
+			{
+				LOG(ERROR) << "TYPE IS WRONG!";
+			}
+			auto s = dynamic_cast<ObjString*>(value);
+//			this->globals.insert({
+//				s, this->peek(0)
+//			});
+			auto v = this->peek(0);
+			this->globals[*s] = v;
+			this->pop();
+			break;
+		}
 		case OpCode::OP_EQUAL:
 		{
 			Value b = this->pop();
@@ -166,40 +198,71 @@ InterpretResult vm::binaryOp(const string& op)
 	do
 	{
 
-		if (!this->peek(0).isNumber() || !this->peek(1).isNumber())
+//		if (!this->peek(0).isNumber() || !this->peek(1).isNumber())
+//		{
+//			this->runtimeError("Operands must be numbers.");
+//			return InterpretResult::INTERPRET_RUNTIME_ERROR;
+//		}
+		if (this->peek(0).isNumber() && this->peek(1).isNumber())
 		{
-			this->runtimeError("Operands must be numbers.");
+			Value b = this->pop();
+			Value a = this->pop();
+			auto vb = b.asNumber();
+			auto va = a.asNumber();
+
+			if (op == "*")
+			{
+				this->push(va * vb);
+			}
+			else if (op == "/")
+			{
+				this->push(va / vb);
+			}
+			else if (op == "+")
+			{
+				this->push(va + vb);
+			}
+			else if (op == "-")
+			{
+				this->push(va - vb);
+			}
+			else if (op == ">")
+			{
+				this->push(va > vb);
+			}
+			else if (op == "<")
+			{
+				this->push(va < vb);
+			}
+		}
+		else if (this->peek(0).isObject() && this->peek(1).isObject())
+		{
+			Value b = this->pop();
+			Value a = this->pop();
+			auto vb = b.asObject();
+			auto va = a.asObject();
+
+			if (va->type == ObjType::OBJ_STRING && vb->type == ObjType::OBJ_STRING)
+			{
+				auto strA = dynamic_cast<ObjString*>(va);
+				auto strB = dynamic_cast<ObjString*>(vb);
+
+				auto newStr = new ObjString(*strA + *strB);
+				this->addObject(newStr);
+				this->push(newStr);
+			}
+			else
+			{
+				runtimeError("Operands must be two numbers or two strings.");
+				return InterpretResult::INTERPRET_RUNTIME_ERROR;
+			}
+		}
+		else
+		{
+			runtimeError("Operands must be two numbers or two strings.");
 			return InterpretResult::INTERPRET_RUNTIME_ERROR;
 		}
-		Value b = this->pop();
-		Value a = this->pop();
-		auto vb = b.asNumber();
-		auto va = a.asNumber();
 
-		if (op == "*")
-		{
-			this->push(va * vb);
-		}
-		else if (op == "/")
-		{
-			this->push(va / vb);
-		}
-		else if (op == "+")
-		{
-			this->push(va + vb);
-		}
-		else if (op == "-")
-		{
-			this->push(va - vb);
-		}
-		else if (op == ">")
-		{
-			this->push(va > vb);
-		}
-		else if (op == "<")
-		{
-			this->push(va < vb);
-		}
 	} while (false);
 
 	return InterpretResult::INTERPRET_OK;
@@ -308,6 +371,11 @@ void vm::runtimeError(const char* format, ...)
 	int line = this->chunk->lines[this->ip - 1];
 	fprintf(stderr, "[line %d] in script\n", line);
 //	resetStack();
+}
+
+void vm::addObject(Object* object)
+{
+	this->chunk->addObjects(object);
 }
 
 bool vm::isFalsey(Value value)

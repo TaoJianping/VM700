@@ -80,6 +80,31 @@ void Compiler::errorAt(Token* token, const string& message)
 	parser->hadError = true;
 }
 
+void Compiler::synchronize()
+{
+	this->parser->panicMode = false;
+
+	while (this->parser->current.type != TokenType::TOKEN_EOF) {
+		if (this->parser->previous.type == TokenType::TOKEN_SEMICOLON) return;
+		switch (this->parser->current.type) {
+		case TokenType::TOKEN_CLASS:
+		case TokenType::TOKEN_FUN:
+		case TokenType::TOKEN_VAR:
+		case TokenType::TOKEN_FOR:
+		case TokenType::TOKEN_IF:
+		case TokenType::TOKEN_WHILE:
+		case TokenType::TOKEN_PRINT:
+		case TokenType::TOKEN_RETURN:
+			return;
+
+		default:
+			; // Do nothing.
+		}
+
+		this->advance();
+	}
+}
+
 void Compiler::consume(TokenType type, const string& message)
 {
 	if (this->parser->current.type == type)
@@ -156,6 +181,23 @@ void Compiler::emitConstant(string value)
 {
 	auto v = new ObjString(std::move(value));
 	this->emitBytes(OpCode::OP_CONSTANT, makeConstant(v));
+}
+
+uint8_t Compiler::parseVariable(const string& errorMessage)
+{
+	this->consume(TokenType::TOKEN_IDENTIFIER, errorMessage);
+	return identifierConstant(&parser->previous);
+}
+
+uint8_t Compiler::identifierConstant(Token* name)
+{
+	auto str = new ObjString(name->lexeme);
+	return makeConstant(str);
+}
+
+void Compiler::defineVariable(uint8_t global)
+{
+	this->emitBytes(OpCode::OP_DEFINE_GLOBAL, global);
 }
 
 uint8_t Compiler::makeConstant(Value value)
@@ -276,9 +318,22 @@ void Compiler::readString()
 	this->emitConstant(str);
 }
 
+void Compiler::variable()
+{
+	this->namedVariable(&this->parser->previous);
+}
+
 void Compiler::declaration()
 {
-	this->statement();
+	if (this->match(TokenType::TOKEN_VAR))
+	{
+		this->varDeclaration();
+	}
+	else
+	{
+		this->statement();
+	}
+	if (this->parser->panicMode) this->synchronize();
 }
 
 void Compiler::statement()
@@ -302,6 +357,23 @@ void Compiler::expressionStatement()
 	this->emitByte(OpCode::OP_POP);
 }
 
+void Compiler::varDeclaration()
+{
+	// read variable name
+	uint8_t global = this->parseVariable("Expect variable name.");
+	if (this->match(TokenType::TOKEN_EQUAL))
+	{
+		this->expression();
+	}
+	else
+	{
+		this->emitByte(OpCode::OP_NIL);
+	}
+	this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+
+	this->defineVariable(global);
+}
+
 Compiler::Compiler()
 {
 	auto funcReadNumber = [this]()
@@ -321,6 +393,11 @@ Compiler::Compiler()
 	auto funcString = [this]()
 	{
 		this->readString();
+	};
+
+	auto funcVariable = [this]()
+	{
+		this->variable();
 	};
 
 	this->rules = map<TokenType, ParseRule>{
@@ -343,7 +420,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_GREATER_EQUAL, { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
 			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
-			{ TokenType::TOKEN_IDENTIFIER,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_IDENTIFIER,    { funcVariable,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_STRING,        { funcString,     nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -392,3 +469,8 @@ void Compiler::parsePrecedence(Precedence precedence)
 	}
 }
 
+void Compiler::namedVariable(Token* name)
+{
+	uint8_t arg = identifierConstant(name);
+	this->emitBytes(OpCode::OP_GET_GLOBAL, arg);
+}

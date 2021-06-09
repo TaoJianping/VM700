@@ -17,6 +17,7 @@
 using std::string;
 using std::map;
 using std::function;
+using std::map;
 
 enum class Precedence : int
 {
@@ -56,6 +57,8 @@ private:
 
 	void errorAt(Token* token, const string& message);
 
+	void synchronize();
+
 	void consume(TokenType type, const string& message);
 
 	bool match(TokenType type);
@@ -80,6 +83,14 @@ private:
 
 	void endCompiler();
 
+	uint8_t parseVariable(const string& errorMessage);
+
+	uint8_t identifierConstant(Token* name);
+
+	void namedVariable(Token* name);
+
+	void defineVariable(uint8_t global);
+
 	uint8_t makeConstant(Value value);
 
 	ParseRule* getRule(TokenType type);
@@ -98,6 +109,8 @@ private:
 
 	void readString();
 
+	void variable();
+
 	void declaration();
 
 	void statement();
@@ -105,6 +118,8 @@ private:
 	void printStatement();
 
 	void expressionStatement();
+
+	void varDeclaration();
 
 public:
 	Compiler();

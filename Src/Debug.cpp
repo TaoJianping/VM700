@@ -97,6 +97,16 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_POP", offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_GET_GLOBAL:
+	{
+		offset = this->constantInstruction("OP_GET_GLOBAL", chunk, offset, opCodeName);
+		break;
+	}
+	case OpCode::OP_DEFINE_GLOBAL:
+	{
+		offset = this->constantInstruction("OP_DEFINE_GLOBAL", chunk, offset, opCodeName);
+		break;
+	}
 	case OpCode::OP_CONSTANT:
 	{
 		offset = this->constantInstruction("OP_CONSTANT", chunk, offset, opCodeName);
