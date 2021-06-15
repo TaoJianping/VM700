@@ -150,6 +150,24 @@ InterpretResult vm::run()
 			this->pop();
 			break;
 		}
+		case OpCode::OP_SET_GLOBAL:
+		{
+			auto name = this->chunk->constants.at(this->readByte());
+			auto value = name.asObject();
+			if (value->type != ObjType::OBJ_STRING)
+			{
+				LOG(ERROR) << "TYPE IS WRONG!";
+			}
+			auto s = dynamic_cast<ObjString*>(value);
+			if (!this->globals.count(*s))
+			{
+				runtimeError("Undefined variable '%s'.", s);
+				return InterpretResult::INTERPRET_COMPILE_ERROR;
+			}
+			auto top = this->peek(0);
+			this->globals[*s] = top;
+			break;
+		}
 		case OpCode::OP_EQUAL:
 		{
 			Value b = this->pop();

@@ -212,19 +212,19 @@ uint8_t Compiler::makeConstant(Value value)
 	return static_cast<uint8_t>(constant);
 }
 
-void Compiler::number()
+void Compiler::number(bool canAssign)
 {
 	double value = std::stod(this->parser->previous.lexeme);
 	this->emitConstant(value);
 }
 
-void Compiler::grouping()
+void Compiler::grouping(bool canAssign)
 {
 	this->expression();
 	this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-void Compiler::unary()
+void Compiler::unary(bool canAssign)
 {
 	TokenType operatorType = this->parser->previous.type;
 
@@ -246,7 +246,7 @@ void Compiler::unary()
 	}
 }
 
-void Compiler::binary()
+void Compiler::binary(bool canAssign)
 {
 	// Remember the operator.
 	TokenType operatorType = this->parser->previous.type;
@@ -293,7 +293,7 @@ void Compiler::binary()
 	}
 }
 
-void Compiler::literal()
+void Compiler::literal(bool canAssign)
 {
 	switch (this->parser->previous.type)
 	{
@@ -311,16 +311,16 @@ void Compiler::literal()
 	}
 }
 
-void Compiler::readString()
+void Compiler::readString(bool canAssign)
 {
 	auto raw = this->parser->previous.lexeme;
 	auto str = raw.substr(1, raw.length() - 2);
 	this->emitConstant(str);
 }
 
-void Compiler::variable()
+void Compiler::variable(bool canAssign)
 {
-	this->namedVariable(&this->parser->previous);
+	this->namedVariable(&this->parser->previous, canAssign);
 }
 
 void Compiler::declaration()
@@ -340,6 +340,8 @@ void Compiler::statement()
 {
 	if (this->match(TokenType::TOKEN_PRINT)) {
 		this->printStatement();
+	} else {
+		this->expressionStatement();
 	}
 }
 
@@ -376,28 +378,28 @@ void Compiler::varDeclaration()
 
 Compiler::Compiler()
 {
-	auto funcReadNumber = [this]()
-	{ this->number(); };
-	auto funcGrouping = [this]()
-	{ this->grouping(); };
-	auto funcUnary = [this]()
-	{ this->unary(); };
-	auto funcBinary = [this]()
-	{ this->binary(); };
+	auto funcReadNumber = [this](bool canAssign)
+	{ this->number(canAssign); };
+	auto funcGrouping = [this](bool canAssign)
+	{ this->grouping(canAssign); };
+	auto funcUnary = [this](bool canAssign)
+	{ this->unary(canAssign); };
+	auto funcBinary = [this](bool canAssign)
+	{ this->binary(canAssign); };
 
-	auto funcLiteral = [this]()
+	auto funcLiteral = [this](bool canAssign)
 	{
-		this->literal();
+		this->literal(canAssign);
 	};
 
-	auto funcString = [this]()
+	auto funcString = [this](bool canAssign)
 	{
-		this->readString();
+		this->readString(canAssign);
 	};
 
-	auto funcVariable = [this]()
+	auto funcVariable = [this](bool canAssign)
 	{
-		this->variable();
+		this->variable(canAssign);
 	};
 
 	this->rules = map<TokenType, ParseRule>{
@@ -459,18 +461,28 @@ void Compiler::parsePrecedence(Precedence precedence)
 		return;
 	}
 
-	prefixRule();
+	bool canAssign = precedence <= Precedence::PREC_ASSIGNMENT;
+	prefixRule(canAssign);
 
 	while (precedence <= this->getRule(this->parser->current.type)->precedence)
 	{
 		this->advance();
 		auto infixRule = this->getRule(parser->previous.type)->infix;
-		infixRule();
+		infixRule(canAssign);
+	}
+
+	if (canAssign && match(TokenType::TOKEN_EQUAL)) {
+		this->error("Invalid assignment target.");
 	}
 }
 
-void Compiler::namedVariable(Token* name)
+void Compiler::namedVariable(Token* name, bool canAssign)
 {
 	uint8_t arg = identifierConstant(name);
-	this->emitBytes(OpCode::OP_GET_GLOBAL, arg);
+	if (canAssign && this->match(TokenType::TOKEN_EQUAL)) {
+		this->expression();
+		emitBytes(OpCode::OP_SET_GLOBAL, arg);
+	} else {
+		emitBytes(OpCode::OP_GET_GLOBAL, arg);
+	}
 }

@@ -36,8 +36,8 @@ enum class Precedence : int
 
 struct ParseRule
 {
-	std::function<void()> prefix;
-	std::function<void()> infix;
+	std::function<void(bool canAssign)> prefix;
+	std::function<void(bool canAssign)> infix;
 	Precedence precedence;
 };
 
@@ -87,7 +87,7 @@ private:
 
 	uint8_t identifierConstant(Token* name);
 
-	void namedVariable(Token* name);
+	void namedVariable(Token* name, bool canAssign);
 
 	void defineVariable(uint8_t global);
 
@@ -97,19 +97,19 @@ private:
 
 	void parsePrecedence(Precedence precedence);
 
-	void grouping();
+	void grouping(bool canAssign);
 
-	void unary();
+	void unary(bool canAssign);
 
-	void binary();
+	void binary(bool canAssign);
 
-	void number();
+	void number(bool canAssign);
 
-	void literal();
+	void literal(bool canAssign);
 
-	void readString();
+	void readString(bool canAssign);
 
-	void variable();
+	void variable(bool canAssign);
 
 	void declaration();
 
