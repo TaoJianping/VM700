@@ -379,13 +379,24 @@ void Compiler::varDeclaration()
 Compiler::Compiler()
 {
 	auto funcReadNumber = [this](bool canAssign)
-	{ this->number(canAssign); };
+	{
+		this->number(canAssign);
+	};
+
 	auto funcGrouping = [this](bool canAssign)
-	{ this->grouping(canAssign); };
+	{
+		this->grouping(canAssign);
+	};
+
 	auto funcUnary = [this](bool canAssign)
-	{ this->unary(canAssign); };
+	{
+		this->unary(canAssign);
+	};
+
 	auto funcBinary = [this](bool canAssign)
-	{ this->binary(canAssign); };
+	{
+		this->binary(canAssign);
+	};
 
 	auto funcLiteral = [this](bool canAssign)
 	{
