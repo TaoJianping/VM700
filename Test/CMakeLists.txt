@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -6,7 +6,7 @@ set(CMAKE_BUILD_TYPE debug)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 
-project(cloxTests)
+project(VM700Test)
 
 # install google test
 message(STATUS "Start Install GoogleTest")
@@ -24,11 +24,6 @@ endif ()
 
 find_package(absl CONFIG REQUIRED)
 
-
-include_directories(../Src)
-
-
-
 set(
         Headers
 )
@@ -36,15 +31,13 @@ set(
 set(
         Sources
         testScanner.cpp
+        testBasic.cpp
 )
 
+AUX_SOURCE_DIRECTORY(../Src ExecutableFile)
 
-set(
-        ExecutableFile
-        ../Src/Scanner.cpp
-        ../Src/Scanner.h
-)
+list(REMOVE_ITEM ExecutableFile "../Src/main.cpp")
 
-
-ADD_EXECUTABLE(LoxTest ${Headers} ${Sources} ${ExecutableFile})
-target_link_libraries(LoxTest GTest::gtest GTest::gtest_main glog::glog absl::strings absl::str_format)
+ADD_EXECUTABLE(VM700Test ${Headers} ${Sources} ${ExecutableFile})
+target_link_libraries(VM700Test GTest::gtest GTest::gtest_main glog::glog absl::strings absl::str_format)
+target_include_directories(VM700Test PUBLIC ../Src)

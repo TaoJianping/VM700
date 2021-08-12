@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 
 	auto v = vm();
 //	v.execute(argc, argv);
-	v.runFile("../Resource/test/test1.txt");
+	v.runFile("../Resource/test/testPrint.lox");
 
 	return 0;
 }

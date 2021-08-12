@@ -482,7 +482,8 @@ void Compiler::parsePrecedence(Precedence precedence)
 		infixRule(canAssign);
 	}
 
-	if (canAssign && match(TokenType::TOKEN_EQUAL)) {
+	if (canAssign && this->match(TokenType::TOKEN_EQUAL))
+	{
 		this->error("Invalid assignment target.");
 	}
 }
