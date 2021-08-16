@@ -35,7 +35,7 @@ private:
 	uint8_t readByte();
 	Value readConstant();
 	InterpretResult run();
-	void push(Value value);
+	void push(const Value& value);
 	Value pop();
 	Value top();
 	Value peek(int distance);

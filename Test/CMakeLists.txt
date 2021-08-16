@@ -35,7 +35,6 @@ set(
 )
 
 AUX_SOURCE_DIRECTORY(../Src ExecutableFile)
-
 list(REMOVE_ITEM ExecutableFile "../Src/main.cpp")
 
 ADD_EXECUTABLE(VM700Test ${Headers} ${Sources} ${ExecutableFile})

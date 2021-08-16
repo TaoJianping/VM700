@@ -108,6 +108,17 @@ InterpretResult vm::run()
 			this->pop();
 			break;
 		}
+		case OpCode::OP_GET_LOCAL:
+		{
+			uint8_t slot = this->readByte();
+			this->push(this->peek(slot));
+			break;
+		}
+		case OpCode::OP_SET_LOCAL: {
+			uint8_t slot = this->readByte();
+			this->_stack[slot] = this->peek(0);
+			break;
+		}
 		case OpCode::OP_GREATER:
 		{
 			this->binaryOp(">");
@@ -196,7 +207,7 @@ Value vm::readConstant()
 	return value;
 }
 
-void vm::push(Value value)
+void vm::push(const Value& value)
 {
 	this->_stack.push(value);
 }

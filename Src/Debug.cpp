@@ -97,6 +97,14 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_POP", offset, opCodeName);
 		break;
 	}
+	case OpCode::OP_GET_LOCAL:
+	{
+		offset = this->byteInstruction("OP_GET_LOCAL", chunk, offset, opCodeName);
+	}
+	case OpCode::OP_SET_LOCAL:
+	{
+		offset = this->byteInstruction("OP_SET_LOCAL", chunk, offset, opCodeName);
+	}
 	case OpCode::OP_GET_GLOBAL:
 	{
 		offset = this->constantInstruction("OP_GET_GLOBAL", chunk, offset, opCodeName);
@@ -159,4 +167,11 @@ size_t Debug::constantInstruction(const char* name, Chunk* chunk, size_t offset,
 string Debug::printValue(Value value)
 {
 	return value.toString();
+}
+
+size_t Debug::byteInstruction(const char* name, Chunk* chunk, size_t offset, string& opCodeName)
+{
+	uint8_t slot = chunk->at(offset + 1);
+	opCodeName = StrFormat("%-16s %4d\n", name, slot);
+	return offset + 2;
 }

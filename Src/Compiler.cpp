@@ -186,6 +186,9 @@ void Compiler::emitConstant(string value)
 uint8_t Compiler::parseVariable(const string& errorMessage)
 {
 	this->consume(TokenType::TOKEN_IDENTIFIER, errorMessage);
+	declareVariable();
+	if (this->scopeDepth > 0) return 0;
+
 	return identifierConstant(&parser->previous);
 }
 
@@ -197,6 +200,10 @@ uint8_t Compiler::identifierConstant(Token* name)
 
 void Compiler::defineVariable(uint8_t global)
 {
+	if (this->scopeDepth > 0) {
+		this->markInitialized();
+		return;
+	}
 	this->emitBytes(OpCode::OP_DEFINE_GLOBAL, global);
 }
 
@@ -338,9 +345,17 @@ void Compiler::declaration()
 
 void Compiler::statement()
 {
-	if (this->match(TokenType::TOKEN_PRINT)) {
+	if (this->match(TokenType::TOKEN_PRINT))
+	{
 		this->printStatement();
-	} else {
+	}
+	else if (this->match(TokenType::TOKEN_LEFT_BRACE))
+	{
+		this->beginScope();
+		this->block();
+		this->endScope();
+	}
+	else {
 		this->expressionStatement();
 	}
 }
@@ -490,11 +505,109 @@ void Compiler::parsePrecedence(Precedence precedence)
 
 void Compiler::namedVariable(Token* name, bool canAssign)
 {
-	uint8_t arg = identifierConstant(name);
+	OpCode getOp, setOp;
+	int arg = this->resolveLocal(name);
+	if (arg != -1)
+	{
+		getOp = OpCode::OP_GET_LOCAL;
+		setOp = OpCode::OP_SET_LOCAL;
+	}
+	else
+	{
+		arg = identifierConstant(name);
+		getOp = OpCode::OP_GET_GLOBAL;
+		setOp = OpCode::OP_SET_GLOBAL;
+	}
 	if (canAssign && this->match(TokenType::TOKEN_EQUAL)) {
 		this->expression();
-		emitBytes(OpCode::OP_SET_GLOBAL, arg);
+		emitBytes(setOp, arg);
 	} else {
-		emitBytes(OpCode::OP_GET_GLOBAL, arg);
+		emitBytes(getOp, arg);
 	}
+}
+
+void Compiler::block()
+{
+	while (!this->check(TokenType::TOKEN_RIGHT_BRACE) && !this->check(TokenType::TOKEN_EOF))
+	{
+		this->declaration();
+	}
+
+	this->consume(TokenType::TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
+void Compiler::beginScope()
+{
+	this->scopeDepth++;
+}
+
+void Compiler::endScope()
+{
+	this->scopeDepth--;
+
+	while (this->localCount > 0 &&
+		this->locals[this->localCount - 1].depth >
+		this->scopeDepth)
+	{
+		emitByte(OpCode::OP_POP);
+		this->localCount--;
+	}
+}
+
+void Compiler::declareVariable()
+{
+	if (this->scopeDepth == 0) return;
+
+	Token* name = &parser->previous;
+	this->addLocal(*name);
+}
+
+void Compiler::addLocal(Token name)
+{
+	if (this->localCount == std::numeric_limits<int>::max())
+	{
+		this->error("Too many local variables in function.");
+		return;
+	}
+
+	for (int32_t i = this->localCount - 1; i >= 0; i--)
+	{
+		Local* local = &this->locals[i];
+		if (local->depth != -1 && local->depth < this->scopeDepth) {
+			break;
+		}
+
+		if (identifiersEqual(name, &local->name)) {
+			this->error("Already a variable with this name in this scope.");
+		}
+	}
+
+	Local* local = &this->locals[this->localCount++];
+	local->name = std::move(name);
+	local->depth = -1;
+}
+
+bool Compiler::identifiersEqual(Token* a, Token* b)
+{
+	return a->lexeme == b->lexeme;
+}
+
+int Compiler::resolveLocal(Token* name)
+{
+	for (int i = this->localCount - 1; i >= 0; i--) {
+		Local* local = &this->locals[i];
+		if (identifiersEqual(name, &local->name)) {
+			if (local->depth == -1) {
+				this->error("Can't read local variable in its own initializer.");
+			}
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void Compiler::markInitialized()
+{
+	this->locals[this->localCount - 1].depth = this->scopeDepth;
 }

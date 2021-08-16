@@ -8,6 +8,7 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <limits>
 
 #include "Scanner.h"
 #include "Parser.h"
@@ -41,6 +42,11 @@ struct ParseRule
 	Precedence precedence;
 };
 
+struct Local
+{
+	Token name;
+	int32_t depth;
+};
 
 class Compiler
 {
@@ -50,6 +56,10 @@ private:
 	Chunk* compilingChunk = nullptr;
 	map<TokenType, ParseRule> rules{};
 	Debug debugger {};
+
+	Local locals[std::numeric_limits<int>::max()];
+	int32_t localCount = 0;
+	int32_t scopeDepth = 0;
 
 	void errorAtCurrent(const string& message);
 
@@ -120,6 +130,22 @@ private:
 	void expressionStatement();
 
 	void varDeclaration();
+
+	void block();
+
+	void beginScope();
+
+	void endScope();
+
+	void declareVariable();
+
+	void addLocal(Token name);
+
+	bool identifiersEqual(Token* a, Token* b);
+
+	int resolveLocal(Token* name);
+
+	void markInitialized();
 
 public:
 	Compiler();
