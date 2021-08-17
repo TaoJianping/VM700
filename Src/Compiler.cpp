@@ -186,7 +186,7 @@ void Compiler::emitConstant(string value)
 uint8_t Compiler::parseVariable(const string& errorMessage)
 {
 	this->consume(TokenType::TOKEN_IDENTIFIER, errorMessage);
-	declareVariable();
+	this->declareVariable();
 	if (this->scopeDepth > 0) return 0;
 
 	return identifierConstant(&parser->previous);
@@ -545,9 +545,7 @@ void Compiler::endScope()
 {
 	this->scopeDepth--;
 
-	while (this->localCount > 0 &&
-		this->locals[this->localCount - 1].depth >
-		this->scopeDepth)
+	while (this->localCount > 0 && this->locals[this->localCount - 1].depth > this->scopeDepth)
 	{
 		emitByte(OpCode::OP_POP);
 		this->localCount--;
@@ -557,8 +555,22 @@ void Compiler::endScope()
 void Compiler::declareVariable()
 {
 	if (this->scopeDepth == 0) return;
-
 	Token* name = &parser->previous;
+
+	for (int32_t i = this->localCount - 1; i >= 0; i--)
+	{
+		Local* local = &this->locals[i];
+		if (local->depth != -1 && local->depth < this->scopeDepth)
+		{
+			break;
+		}
+
+		if (identifiersEqual(name, &local->name))
+		{
+			this->error("Already a variable with this name in this scope.");
+		}
+	}
+
 	this->addLocal(*name);
 }
 
@@ -570,20 +582,8 @@ void Compiler::addLocal(Token name)
 		return;
 	}
 
-	for (int32_t i = this->localCount - 1; i >= 0; i--)
-	{
-		Local* local = &this->locals[i];
-		if (local->depth != -1 && local->depth < this->scopeDepth) {
-			break;
-		}
-
-		if (identifiersEqual(name, &local->name)) {
-			this->error("Already a variable with this name in this scope.");
-		}
-	}
-
 	Local* local = &this->locals[this->localCount++];
-	local->name = std::move(name);
+	local->name = name;
 	local->depth = -1;
 }
 
@@ -594,9 +594,11 @@ bool Compiler::identifiersEqual(Token* a, Token* b)
 
 int Compiler::resolveLocal(Token* name)
 {
-	for (int i = this->localCount - 1; i >= 0; i--) {
+	for (int i = this->localCount - 1; i >= 0; i--)
+	{
 		Local* local = &this->locals[i];
-		if (identifiersEqual(name, &local->name)) {
+		if (identifiersEqual(name, &local->name))
+		{
 			if (local->depth == -1) {
 				this->error("Can't read local variable in its own initializer.");
 			}
