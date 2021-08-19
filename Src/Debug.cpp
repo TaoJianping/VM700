@@ -100,10 +100,12 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 	case OpCode::OP_GET_LOCAL:
 	{
 		offset = this->byteInstruction("OP_GET_LOCAL", chunk, offset, opCodeName);
+		break;
 	}
 	case OpCode::OP_SET_LOCAL:
 	{
 		offset = this->byteInstruction("OP_SET_LOCAL", chunk, offset, opCodeName);
+		break;
 	}
 	case OpCode::OP_GET_GLOBAL:
 	{

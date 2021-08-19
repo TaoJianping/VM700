@@ -27,7 +27,7 @@ InterpretResult vm::run()
 	for (;;)
 	{
 #ifdef DEBUG_TRACE_EXECUTION
-		LOG(INFO) << StrFormat("          %s", this->_stack.toString());
+		LOG(INFO) << StrFormat("              %s", this->_stack.toString());
 		this->debugger.disassembleInstruction(this->chunk, this->ip);
 #endif
 		uint8_t instruction = this->readByte();

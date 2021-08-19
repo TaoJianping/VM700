@@ -57,7 +57,7 @@ private:
 	map<TokenType, ParseRule> rules{};
 	Debug debugger {};
 
-	Local locals[std::numeric_limits<int>::max()];
+	Local locals[std::numeric_limits<uint8_t>::max()];
 	int32_t localCount = 0;
 	int32_t scopeDepth = 0;
 
