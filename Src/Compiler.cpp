@@ -576,14 +576,14 @@ void Compiler::declareVariable()
 
 void Compiler::addLocal(Token name)
 {
-	if (this->localCount == std::numeric_limits<int>::max())
+	if (this->localCount == std::numeric_limits<uint8_t>::max())
 	{
 		this->error("Too many local variables in function.");
 		return;
 	}
 
 	Local* local = &this->locals[this->localCount++];
-	local->name = name;
+	local->name = std::move(name);
 	local->depth = -1;
 }
 
