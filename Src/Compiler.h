@@ -147,6 +147,14 @@ private:
 
 	void markInitialized();
 
+    void ifStatement();
+
+    int32_t emitJump(OpCode instruction);
+
+    Chunk* currentChunk();
+
+    void patchJump(int32_t offset);
+
 public:
 	Compiler();
 

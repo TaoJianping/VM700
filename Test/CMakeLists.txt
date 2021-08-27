@@ -38,5 +38,5 @@ AUX_SOURCE_DIRECTORY(../Src ExecutableFile)
 list(REMOVE_ITEM ExecutableFile "../Src/main.cpp")
 
 ADD_EXECUTABLE(VM700Test ${Headers} ${Sources} ${ExecutableFile})
-target_link_libraries(VM700Test GTest::gtest GTest::gtest_main glog::glog absl::strings absl::str_format)
+target_link_libraries(VM700Test PRIVATE GTest::gtest GTest::gtest_main glog::glog absl::strings absl::str_format)
 target_include_directories(VM700Test PUBLIC ../Src)

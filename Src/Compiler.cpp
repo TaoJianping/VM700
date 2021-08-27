@@ -349,6 +349,10 @@ void Compiler::statement()
 	{
 		this->printStatement();
 	}
+    else if (this->match(TokenType::TOKEN_IF))
+    {
+        this->ifStatement();
+    }
 	else if (this->match(TokenType::TOKEN_LEFT_BRACE))
 	{
 		this->beginScope();
@@ -612,4 +616,38 @@ int Compiler::resolveLocal(Token* name)
 void Compiler::markInitialized()
 {
 	this->locals[this->localCount - 1].depth = this->scopeDepth;
+}
+
+void Compiler::ifStatement() {
+    this->consume(TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+    this->expression();
+    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int32_t thenJump = emitJump(OpCode::OP_JUMP_IF_FALSE);
+    this->statement();
+
+    this->patchJump(thenJump);
+}
+
+int32_t Compiler::emitJump(OpCode instruction) {
+    this->emitByte(instruction);
+    this->emitByte(0xff);
+    this->emitByte(0xff);
+    return this->currentChunk()->size() - 2;
+}
+
+Chunk *Compiler::currentChunk() {
+    return this->compilingChunk;
+}
+
+void Compiler::patchJump(int32_t offset) {
+    // -2 to adjust for the bytecode for the jump offset itself.
+    int32_t jump = this->currentChunk()->size() - offset - 2;
+
+    if (jump > UINT16_MAX) {
+        this->error("Too much code to jump over.");
+    }
+
+    this->currentChunk()->at(offset) = (jump >> 8) & 0xff;
+    this->currentChunk()->at(offset + 1) = jump & 0xff;
 }
