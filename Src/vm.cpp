@@ -74,6 +74,21 @@ InterpretResult vm::run()
 			LOG(INFO) << ret.toString() << "\n";
 			break;
 		}
+        case OpCode::OP_JUMP:
+        {
+            uint16_t offset = this->readShort();
+            this->ip += offset;
+            break;
+        }
+        case OpCode::OP_JUMP_IF_FALSE:
+        {
+            uint16_t offset = this->readShort();
+            if (this->isFalsey(this->peek(0)))
+            {
+                this->ip += offset;
+            }
+            break;
+        }
 		case OpCode::OP_RETURN:
 		{
 //			auto ret = this->pop();
@@ -198,6 +213,16 @@ uint8_t vm::readByte()
 	auto ret = this->chunk->at(this->ip);
 	this->ip++;
 	return ret;
+}
+
+uint16_t vm::readShort()
+{
+    uint8_t a = this->chunk->at(this->ip);
+    uint8_t b = this->chunk->at(this->ip + 1);
+
+    this->ip += 2;
+
+    return (uint16_t)((a << 8) | b);
 }
 
 Value vm::readConstant()

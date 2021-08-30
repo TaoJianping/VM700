@@ -626,7 +626,14 @@ void Compiler::ifStatement() {
     int32_t thenJump = emitJump(OpCode::OP_JUMP_IF_FALSE);
     this->statement();
 
+    int32_t elseJump = emitJump(OpCode::OP_JUMP);
     this->patchJump(thenJump);
+
+    if (this->match(TokenType::TOKEN_ELSE))
+    {
+        this->statement();
+    }
+    this->patchJump(elseJump);
 }
 
 int32_t Compiler::emitJump(OpCode instruction) {
@@ -647,6 +654,7 @@ void Compiler::patchJump(int32_t offset) {
     if (jump > UINT16_MAX) {
         this->error("Too much code to jump over.");
     }
+
 
     this->currentChunk()->at(offset) = (jump >> 8) & 0xff;
     this->currentChunk()->at(offset + 1) = jump & 0xff;

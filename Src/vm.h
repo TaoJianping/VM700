@@ -33,6 +33,7 @@ private:
 
 	InterpretResult binaryOp(const string& op);
 	uint8_t readByte();
+    uint16_t readShort();
 	Value readConstant();
 	InterpretResult run();
 	void push(const Value& value);
