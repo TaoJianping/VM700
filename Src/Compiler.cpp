@@ -432,6 +432,11 @@ Compiler::Compiler()
 		this->variable(canAssign);
 	};
 
+    auto funcAnd = [](bool canAssign)
+    {
+        this->
+    };
+
 	this->rules = map<TokenType, ParseRule>{
 			{ TokenType::TOKEN_LEFT_PAREN,    { funcGrouping,   nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_RIGHT_PAREN,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -455,7 +460,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_IDENTIFIER,    { funcVariable,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_STRING,        { funcString,     nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_AND,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_AND,           { nullptr,        funcAnd,    Precedence::PREC_AND }},
 			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_ELSE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_FALSE,         { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
@@ -623,12 +628,13 @@ void Compiler::ifStatement() {
     this->expression();
     this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
-    int32_t thenJump = emitJump(OpCode::OP_JUMP_IF_FALSE);
+    int32_t thenJump = this->emitJump(OpCode::OP_JUMP_IF_FALSE);
+    this->emitByte(OpCode::OP_POP);
     this->statement();
-
-    int32_t elseJump = emitJump(OpCode::OP_JUMP);
+    int32_t elseJump = this->emitJump(OpCode::OP_JUMP);
     this->patchJump(thenJump);
 
+    this->emitByte(OpCode::OP_POP);
     if (this->match(TokenType::TOKEN_ELSE))
     {
         this->statement();
@@ -658,4 +664,14 @@ void Compiler::patchJump(int32_t offset) {
 
     this->currentChunk()->at(offset) = (jump >> 8) & 0xff;
     this->currentChunk()->at(offset + 1) = jump & 0xff;
+}
+
+void Compiler::and_(bool canAssign)
+{
+    int32_t endJump = this->emitJump(OpCode::OP_JUMP_IF_FALSE);
+
+    this->emitByte(OpCode::OP_POP);
+    this->parsePrecedence(Precedence::PREC_AND);
+
+    this->patchJump(endJump);
 }

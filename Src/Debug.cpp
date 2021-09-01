@@ -72,6 +72,14 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->simpleInstruction("OP_PRINT", offset, opCodeName);
 		break;
 	}
+    case OpCode::OP_JUMP:
+    {
+        break;
+    }
+    case OpCode::OP_JUMP_IF_FALSE:
+    {
+        break;
+    }
 	case OpCode::OP_RETURN:
 	{
 		offset = this->simpleInstruction("OP_RETURN", offset, opCodeName);
@@ -176,4 +184,11 @@ size_t Debug::byteInstruction(const char* name, Chunk* chunk, size_t offset, str
 	uint8_t slot = chunk->at(offset + 1);
 	opCodeName = StrFormat("%-16s %4d\n", name, slot);
 	return offset + 2;
+}
+
+size_t Debug::jumpInstruction(const char *name, Chunk *chunk, size_t offset, int sign, string &opCodeName) {
+    auto jump = (uint16_t)(chunk->at(offset + 1) << 8);
+    jump |= chunk->at(offset + 2);
+    opCodeName =  StrFormat("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
+    return offset + 3;
 }

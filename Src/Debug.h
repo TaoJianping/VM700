@@ -18,6 +18,7 @@ public:
 	static size_t simpleInstruction(const char* name, size_t offset, string& opCodeName);
 	size_t constantInstruction(const char* name, Chunk* chunk, size_t offset, string& opCodeName);
 	size_t byteInstruction(const char* name, Chunk* chunk, size_t offset, string& opCodeName);
+    size_t jumpInstruction(const char* name,  Chunk* chunk, size_t offset, int32_t sign, string& opCodeName);
 	string printValue(Value value);
 };
 

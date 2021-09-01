@@ -155,6 +155,8 @@ private:
 
     void patchJump(int32_t offset);
 
+    void and_(bool canAssign);
+
 public:
 	Compiler();
 
