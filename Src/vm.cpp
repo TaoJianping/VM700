@@ -89,6 +89,12 @@ InterpretResult vm::run()
             }
             break;
         }
+        case OpCode::OP_LOOP:
+        {
+            uint16_t offset = this->readShort();
+            this->ip -= offset;
+            break;
+        }
 		case OpCode::OP_RETURN:
 		{
 //			auto ret = this->pop();

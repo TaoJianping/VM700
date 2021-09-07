@@ -157,6 +157,12 @@ private:
 
     void and_(bool canAssign);
 
+    void or_(bool canAssign);
+
+    void whileStatement();
+
+    void emitLoop(int32_t loopStart);
+
 public:
 	Compiler();
 

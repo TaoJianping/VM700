@@ -353,6 +353,10 @@ void Compiler::statement()
     {
         this->ifStatement();
     }
+    else if (this->match(TokenType::TOKEN_WHILE))
+    {
+        this->whileStatement();
+    }
 	else if (this->match(TokenType::TOKEN_LEFT_BRACE))
 	{
 		this->beginScope();
@@ -432,9 +436,14 @@ Compiler::Compiler()
 		this->variable(canAssign);
 	};
 
-    auto funcAnd = [](bool canAssign)
+    auto funcAnd = [this](bool canAssign)
     {
-        this->
+        this->and_(canAssign);
+    };
+
+    auto funcOr = [this](bool canAssign)
+    {
+        this->or_(canAssign);
     };
 
 	this->rules = map<TokenType, ParseRule>{
@@ -468,7 +477,7 @@ Compiler::Compiler()
 			{ TokenType::TOKEN_FUN,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_IF,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_NIL,           { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_OR,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
+			{ TokenType::TOKEN_OR,            { nullptr,        funcOr,    Precedence::PREC_OR }},
 			{ TokenType::TOKEN_PRINT,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_RETURN,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
 			{ TokenType::TOKEN_SUPER,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
@@ -674,4 +683,44 @@ void Compiler::and_(bool canAssign)
     this->parsePrecedence(Precedence::PREC_AND);
 
     this->patchJump(endJump);
+}
+
+void Compiler::or_(bool canAssign)
+{
+    int32_t elseJump = emitJump(OpCode::OP_JUMP_IF_FALSE);
+    int32_t endJump = emitJump(OpCode::OP_JUMP);
+
+    this->patchJump(elseJump);
+    this->emitByte(OpCode::OP_POP);
+
+    this->parsePrecedence(Precedence::PREC_OR);
+    this->patchJump(endJump);
+}
+
+void Compiler::whileStatement()
+{
+    int32_t loopStart = this->currentChunk()->size();
+    this->consume(TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+    this->expression();
+    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int32_t exitJump = emitJump(OpCode::OP_JUMP_IF_FALSE);
+    this->emitByte(OpCode::OP_POP);
+    this->statement();
+
+    this->emitLoop(loopStart);
+
+    this->patchJump(exitJump);
+    this->emitByte(OpCode::OP_POP);
+}
+
+void Compiler::emitLoop(int32_t loopStart)
+{
+    this->emitByte(OpCode::OP_LOOP);
+
+    int32_t offset = this->currentChunk()->size() - loopStart + 2;
+    if (offset > UINT16_MAX) error("Loop body too large.");
+
+    this->emitByte((offset >> 8) & 0xff);
+    this->emitByte(offset & 0xff);
 }
