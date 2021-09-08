@@ -349,6 +349,10 @@ void Compiler::statement()
 	{
 		this->printStatement();
 	}
+    else if (this->match(TokenType::TOKEN_FOR))
+    {
+        this->forStatement();
+    }
     else if (this->match(TokenType::TOKEN_IF))
     {
         this->ifStatement();
@@ -363,7 +367,8 @@ void Compiler::statement()
 		this->block();
 		this->endScope();
 	}
-	else {
+	else
+    {
 		this->expressionStatement();
 	}
 }
@@ -723,4 +728,54 @@ void Compiler::emitLoop(int32_t loopStart)
 
     this->emitByte((offset >> 8) & 0xff);
     this->emitByte(offset & 0xff);
+}
+
+void Compiler::forStatement()
+{
+    beginScope();
+    this->consume(TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+    if (this->match(TokenType::TOKEN_SEMICOLON)) {
+        // No initializer.
+    } else if (match(TokenType::TOKEN_VAR)) {
+        this->varDeclaration();
+    } else {
+        this->expressionStatement();
+    }
+
+    int32_t loopStart = this->currentChunk()->size();
+    int32_t exitJump = -1;
+    if (!this->match(TokenType::TOKEN_SEMICOLON)) {
+        this->expression();
+        this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+
+        // Jump out of the loop if the condition is false.
+        exitJump = this->emitJump(OpCode::OP_JUMP_IF_FALSE);
+        this->emitByte(OpCode::OP_POP); // Condition.
+    }
+
+    this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';'.");
+    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+
+    if (!match(TokenType::TOKEN_RIGHT_PAREN)) {
+        int32_t bodyJump = emitJump(OpCode::OP_JUMP);
+        int32_t incrementStart = this->currentChunk()->size();
+        expression();
+        emitByte(OpCode::OP_POP);
+        consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        emitLoop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+
+    this->statement();
+    this->emitLoop(loopStart);
+
+    if (exitJump != -1) {
+        this->patchJump(exitJump);
+        this->emitByte(OpCode::OP_POP); // Condition.
+    }
+
+    endScope();
 }

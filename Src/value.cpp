@@ -40,6 +40,11 @@ Value::Value(Object* obj): LoxType(obj)
 
 }
 
+Value::Value(bool boolean): LoxType(boolean)
+{
+
+}
+
 ValueType Value::type()
 {
 	return static_cast<ValueType>(this->index());
@@ -107,3 +112,5 @@ bool Value::isObject()
 {
 	return this->type() == ValueType::Object;
 }
+
+

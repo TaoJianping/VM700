@@ -163,6 +163,8 @@ private:
 
     void emitLoop(int32_t loopStart);
 
+    void forStatement();
+
 public:
 	Compiler();
 

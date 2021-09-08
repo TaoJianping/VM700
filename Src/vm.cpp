@@ -111,17 +111,17 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_NIL:
 		{
-			this->push(std::monostate());
+			this->push(Value(Nil()));
 			break;
 		}
 		case OpCode::OP_TRUE:
 		{
-			this->push(true);
+			this->push(Value(true));
 			break;
 		}
 		case OpCode::OP_FALSE:
 		{
-			this->push(false);
+			this->push(Value(false));
 			break;
 		}
 		case OpCode::OP_POP:
@@ -440,6 +440,8 @@ void vm::addObject(Object* object)
 
 bool vm::isFalsey(Value value)
 {
+    auto t = value.type();
+    auto c = value.isBool();
 	return value.isNil() || (value.isBool() && !value.asBool());
 }
 

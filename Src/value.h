@@ -43,10 +43,11 @@ public:
 	Object* asObject();
 	bool isObject();
 
-	Value(double num);
-	Value(Nil nil);
+    Value(double num);
+    Value(Nil nil);
 	Value(const Value& v);
-	Value(Object* obj);
+    Value(Object* obj);
+    Value(bool boolean);
 
 	Value() = default;
 
