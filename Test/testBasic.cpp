@@ -24,10 +24,55 @@ TEST(testProgram, test2) {
 	v.runFile(path);
 }
 
-TEST(testProgram, test3) {
+TEST(testProgram, testIf) {
     FLAGS_logtostderr = true;  //输出到控制台
     //	google::InitGoogleLogging(argv[0]);    // 初始化
     const std::string path = "../../Resource/test/testIf.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testAnd) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testAnd.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testOr) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testOr.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testWhile) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testWhile.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testFor1) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testFor.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testFor2) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testFor2.lox";
     auto v = vm();
     //	v.execute(argc, argv);
     v.runFile(path);

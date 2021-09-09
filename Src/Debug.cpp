@@ -74,17 +74,17 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 	}
     case OpCode::OP_JUMP:
     {
-        offset = jumpInstruction("OP_JUMP", chunk, 1, offset, opCodeName);
+        offset = jumpInstruction("OP_JUMP", chunk,offset, 1, opCodeName);
         break;
     }
     case OpCode::OP_JUMP_IF_FALSE:
     {
-        offset = jumpInstruction("OP_JUMP_IF_FALSE", chunk, 1, offset, opCodeName);
+        offset = jumpInstruction("OP_JUMP_IF_FALSE", chunk, offset, 1, opCodeName);
         break;
     }
     case OpCode::OP_LOOP:
     {
-        offset = jumpInstruction("OP_LOOP", chunk, -1, offset, opCodeName);
+        offset = jumpInstruction("OP_LOOP", chunk, offset, -1, opCodeName);
         break;
     }
 	case OpCode::OP_RETURN:

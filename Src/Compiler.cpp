@@ -732,7 +732,7 @@ void Compiler::emitLoop(int32_t loopStart)
 
 void Compiler::forStatement()
 {
-    beginScope();
+    this->beginScope();
     this->consume(TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
     if (this->match(TokenType::TOKEN_SEMICOLON)) {
         // No initializer.
@@ -753,9 +753,6 @@ void Compiler::forStatement()
         this->emitByte(OpCode::OP_POP); // Condition.
     }
 
-    this->consume(TokenType::TOKEN_SEMICOLON, "Expect ';'.");
-    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
-
     if (!match(TokenType::TOKEN_RIGHT_PAREN)) {
         int32_t bodyJump = emitJump(OpCode::OP_JUMP);
         int32_t incrementStart = this->currentChunk()->size();
@@ -768,7 +765,6 @@ void Compiler::forStatement()
         patchJump(bodyJump);
     }
 
-
     this->statement();
     this->emitLoop(loopStart);
 
@@ -777,5 +773,5 @@ void Compiler::forStatement()
         this->emitByte(OpCode::OP_POP); // Condition.
     }
 
-    endScope();
+    this->endScope();
 }
