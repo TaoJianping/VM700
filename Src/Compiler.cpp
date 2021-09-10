@@ -6,11 +6,17 @@
 
 #include <utility>
 
-bool Compiler::compile(const std::string& source, Chunk* chunk)
+ObjFunction* Compiler::compile(const std::string& source)
 {
 	this->scanner = new Scanner(source);
 	this->parser = new Parser(this->scanner);
-	this->compilingChunk = chunk;
+
+    this->function = new ObjFunction();
+
+    Local* local = &this->locals[this->localCount++];
+    local->depth = 0;
+    local->name.lexeme = "";
+    local->name.length = 0;
 
 	this->advance();
 
@@ -19,12 +25,12 @@ bool Compiler::compile(const std::string& source, Chunk* chunk)
 		this->declaration();
 	}
 
-	this->endCompiler();
+	auto func = this->endCompiler();
 
 	delete this->scanner;
 	delete this->parser;
 
-	return !this->parser->hadError;
+	return this->parser->hadError ? nullptr : func;
 }
 
 void Compiler::advance()
@@ -156,15 +162,19 @@ void Compiler::emitBytes(OpCode code, uint8_t byte2)
 	this->emitByte(byte2);
 }
 
-void Compiler::endCompiler()
+ObjFunction* Compiler::endCompiler()
 {
 	this->emitReturn();
+
 #ifdef DEBUG_PRINT_CODE
 	if (!this->parser->hadError)
 	{
-		this->debugger.disassembleChunk(this->compilingChunk, "code");
+		this->debugger.disassembleChunk(this->currentChunk(), function->_name_() != NULL
+                                                              ? function->_name_() : "<script>");
 	}
 #endif
+
+    return this->function;
 }
 
 void Compiler::emitReturn()
@@ -664,7 +674,7 @@ int32_t Compiler::emitJump(OpCode instruction) {
 }
 
 Chunk *Compiler::currentChunk() {
-    return this->compilingChunk;
+    return this->function->getChunk();
 }
 
 void Compiler::patchJump(int32_t offset) {

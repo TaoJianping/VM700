@@ -11,7 +11,6 @@
 
 using std::vector;
 
-
 enum class OpCode : uint8_t
 {
 	OP_CONSTANT,

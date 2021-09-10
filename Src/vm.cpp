@@ -11,6 +11,7 @@
 #include <sstream>
 #include "chunk.h"
 #include "Compiler.h"
+#include "ObjFunction.h"
 
 using absl::StrFormat;
 
@@ -440,8 +441,6 @@ void vm::addObject(Object* object)
 
 bool vm::isFalsey(Value value)
 {
-    auto t = value.type();
-    auto c = value.isBool();
 	return value.isNil() || (value.isBool() && !value.asBool());
 }
 
@@ -490,10 +489,17 @@ void vm::freeObject(Object* obj)
 {
 	switch (obj->type)
 	{
-	case ObjType::OBJ_STRING:
-	{
-		auto str = dynamic_cast<ObjString*>(obj);
-		delete str;
-	}
+        case ObjType::OBJ_STRING:
+        {
+            auto str = dynamic_cast<ObjString*>(obj);
+            delete str;
+            break;
+        }
+        case ObjType::OBJ_FUNCTION:
+        {
+            auto func = dynamic_cast<ObjFunction*>(obj);
+            delete func;
+            break;
+        }
 	}
 }

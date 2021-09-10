@@ -14,6 +14,7 @@
 #include "Parser.h"
 #include "chunk.h"
 #include "Debug.h"
+#include "ObjFunction.h"
 
 using std::string;
 using std::map;
@@ -53,9 +54,12 @@ class Compiler
 private:
 	Scanner* scanner = nullptr;
 	Parser* parser = nullptr;
-	Chunk* compilingChunk = nullptr;
+//	Chunk* compilingChunk = nullptr;
 	map<TokenType, ParseRule> rules{};
 	Debug debugger {};
+
+    ObjFunction* function = nullptr;
+    FunctionType type = FunctionType::TYPE_SCRIPT;
 
 	Local locals[std::numeric_limits<uint8_t>::max()];
 	int32_t localCount = 0;
@@ -91,7 +95,7 @@ private:
 
 	void emitReturn();
 
-	void endCompiler();
+    ObjFunction* endCompiler();
 
 	uint8_t parseVariable(const string& errorMessage);
 
@@ -168,7 +172,7 @@ private:
 public:
 	Compiler();
 
-	bool compile(const string& source, Chunk* chunk);
+	ObjFunction* compile(const string& source);
 
 	void advance();
 

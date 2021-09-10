@@ -1,17 +1,17 @@
 //
 // Created by tao on 2021/5/25.
 //
-
+#pragma once
 #ifndef VM700_OBJECT_H
 #define VM700_OBJECT_H
 
-#include "common.h"
 #include <string>
 
 using std::string;
 
 enum class ObjType : int32_t
 {
+    OBJ_FUNCTION,
 	OBJ_STRING,
 };
 
