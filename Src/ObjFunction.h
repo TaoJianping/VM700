@@ -19,17 +19,18 @@ enum class FunctionType
 
 class ObjFunction: public Object
 {
-private:
+public:
     int32_t arity;
     Chunk chunk;
-    ObjString* name;
+    std::string name;
 
-public:
     ObjFunction();
     ~ObjFunction() override;
 
     Chunk* getChunk();
     const char* _name_();
+    void printFunction();
+    std::string toString();
 };
 
 

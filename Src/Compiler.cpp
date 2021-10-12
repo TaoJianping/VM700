@@ -8,8 +8,8 @@
 
 ObjFunction* Compiler::compile(const std::string& source)
 {
-	this->scanner = new Scanner(source);
-	this->parser = new Parser(this->scanner);
+	auto s = new Scanner(source);
+	this->parser = new Parser(s);
 
     this->function = new ObjFunction();
 
@@ -27,9 +27,6 @@ ObjFunction* Compiler::compile(const std::string& source)
 
 	auto func = this->endCompiler();
 
-	delete this->scanner;
-	delete this->parser;
-
 	return this->parser->hadError ? nullptr : func;
 }
 
@@ -39,7 +36,7 @@ void Compiler::advance()
 
 	for (;;)
 	{
-		this->parser->current = this->scanner->scanToken();
+		this->parser->current = this->parser->scanner->scanToken();
 		if (this->parser->current.type != TokenType::TOKEN_ERROR)
 			break;
 
@@ -136,7 +133,7 @@ bool Compiler::check(TokenType type)
 
 void Compiler::emitByte(uint8_t byte)
 {
-	this->compilingChunk->write(byte, this->parser->previous.line);
+	this->function->getChunk()->write(byte, this->parser->previous.line);
 }
 
 void Compiler::emitByte(OpCode code)
@@ -169,7 +166,7 @@ ObjFunction* Compiler::endCompiler()
 #ifdef DEBUG_PRINT_CODE
 	if (!this->parser->hadError)
 	{
-		this->debugger.disassembleChunk(this->currentChunk(), function->_name_() != NULL
+		this->debugger.disassembleChunk(this->currentChunk(), !function->name.empty()
                                                               ? function->_name_() : "<script>");
 	}
 #endif
@@ -179,7 +176,8 @@ ObjFunction* Compiler::endCompiler()
 
 void Compiler::emitReturn()
 {
-	this->emitByte(OpCode::OP_RETURN);
+    this->emitByte(OpCode::OP_NIL);
+    this->emitByte(OpCode::OP_RETURN);
 }
 
 void Compiler::emitConstant(double value)
@@ -219,7 +217,7 @@ void Compiler::defineVariable(uint8_t global)
 
 uint8_t Compiler::makeConstant(Value value)
 {
-	std::size_t constant = this->compilingChunk->addConstant(value);
+	std::size_t constant = this->function->getChunk()->addConstant(value);
 	if (constant > UINT8_MAX)
 	{
 		this->error("Too many constants in one chunk.");
@@ -343,9 +341,13 @@ void Compiler::variable(bool canAssign)
 void Compiler::declaration()
 {
 	if (this->match(TokenType::TOKEN_VAR))
-	{
+    {
 		this->varDeclaration();
 	}
+    else if (match(TokenType::TOKEN_FUN))
+    {
+        funDeclaration();
+    }
 	else
 	{
 		this->statement();
@@ -366,6 +368,10 @@ void Compiler::statement()
     else if (this->match(TokenType::TOKEN_IF))
     {
         this->ifStatement();
+    }
+    else if (this->match(TokenType::TOKEN_RETURN))
+    {
+        returnStatement();
     }
     else if (this->match(TokenType::TOKEN_WHILE))
     {
@@ -416,93 +422,7 @@ void Compiler::varDeclaration()
 
 Compiler::Compiler()
 {
-	auto funcReadNumber = [this](bool canAssign)
-	{
-		this->number(canAssign);
-	};
-
-	auto funcGrouping = [this](bool canAssign)
-	{
-		this->grouping(canAssign);
-	};
-
-	auto funcUnary = [this](bool canAssign)
-	{
-		this->unary(canAssign);
-	};
-
-	auto funcBinary = [this](bool canAssign)
-	{
-		this->binary(canAssign);
-	};
-
-	auto funcLiteral = [this](bool canAssign)
-	{
-		this->literal(canAssign);
-	};
-
-	auto funcString = [this](bool canAssign)
-	{
-		this->readString(canAssign);
-	};
-
-	auto funcVariable = [this](bool canAssign)
-	{
-		this->variable(canAssign);
-	};
-
-    auto funcAnd = [this](bool canAssign)
-    {
-        this->and_(canAssign);
-    };
-
-    auto funcOr = [this](bool canAssign)
-    {
-        this->or_(canAssign);
-    };
-
-	this->rules = map<TokenType, ParseRule>{
-			{ TokenType::TOKEN_LEFT_PAREN,    { funcGrouping,   nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_RIGHT_PAREN,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_LEFT_BRACE,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_RIGHT_BRACE,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_COMMA,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_DOT,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_MINUS,         { funcUnary,      funcBinary, Precedence::PREC_TERM }},
-			{ TokenType::TOKEN_PLUS,          { nullptr,        funcBinary, Precedence::PREC_TERM }},
-			{ TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_SLASH,         { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
-			{ TokenType::TOKEN_STAR,          { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
-			{ TokenType::TOKEN_BANG,          { funcUnary,      nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_BANG_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
-			{ TokenType::TOKEN_EQUAL,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_EQUAL_EQUAL,   { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
-			{ TokenType::TOKEN_GREATER,       { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
-			{ TokenType::TOKEN_GREATER_EQUAL, { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
-			{ TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
-			{ TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
-			{ TokenType::TOKEN_IDENTIFIER,    { funcVariable,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_STRING,        { funcString,     nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_AND,           { nullptr,        funcAnd,    Precedence::PREC_AND }},
-			{ TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_ELSE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_FALSE,         { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_FOR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_FUN,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_IF,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_NIL,           { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_OR,            { nullptr,        funcOr,    Precedence::PREC_OR }},
-			{ TokenType::TOKEN_PRINT,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_RETURN,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_SUPER,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_THIS,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_TRUE,          { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_VAR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_WHILE,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_ERROR,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
-			{ TokenType::TOKEN_EOF,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
-	};
+    this->initRules();
 }
 
 ParseRule* Compiler::getRule(TokenType type)
@@ -644,6 +564,7 @@ int Compiler::resolveLocal(Token* name)
 
 void Compiler::markInitialized()
 {
+    if (this->scopeDepth == 0) return;
 	this->locals[this->localCount - 1].depth = this->scopeDepth;
 }
 
@@ -784,4 +705,195 @@ void Compiler::forStatement()
     }
 
     this->endScope();
+}
+
+void Compiler::funDeclaration()
+{
+    uint8_t global = this->parseVariable("Expect function name.");
+    markInitialized();
+    this->functionBody(FunctionType::TYPE_FUNCTION);
+    defineVariable(global);
+}
+
+void Compiler::functionBody(FunctionType type)
+{
+    Compiler compiler(this, type);
+    auto func = compiler.compileFunc(this->parser);
+    this->emitBytes(OpCode::OP_CONSTANT, makeConstant(func));
+}
+
+Compiler::Compiler(Compiler *enclosing, FunctionType type)
+{
+    this->initRules();
+
+    this->enclosing = enclosing;
+    this->function = new ObjFunction();
+    this->type = type;
+
+    Local* local = &this->locals[this->localCount++];
+    local->depth = 0;
+    local->name.lexeme = "";
+    local->name.length = 0;
+}
+
+ObjFunction *Compiler::compileFunc(Parser *p) {
+    this->parser = p;
+
+    this->beginScope();
+
+    if (this->type != FunctionType::TYPE_SCRIPT) {
+        this->function->name = this->parser->previous.lexeme;
+    }
+
+    this->consume(TokenType::TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+    if (!this->check(TokenType::TOKEN_RIGHT_PAREN)) {
+        do {
+            this->function->arity++;
+            if (this->function->arity > 255) {
+                this->errorAtCurrent("Can't have more than 255 parameters.");
+            }
+            uint8_t constant = this->parseVariable("Expect parameter name.");
+            this->defineVariable(constant);
+        } while (match(TokenType::TOKEN_COMMA));
+    }
+    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+    this->consume(TokenType::TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+    this->block();
+
+    ObjFunction* func = endCompiler();
+
+    return func;
+}
+
+void Compiler::initRules() {
+    auto funcReadNumber = [this](bool canAssign)
+    {
+        this->number(canAssign);
+    };
+
+    auto funcGrouping = [this](bool canAssign)
+    {
+        this->grouping(canAssign);
+    };
+
+    auto funcUnary = [this](bool canAssign)
+    {
+        this->unary(canAssign);
+    };
+
+    auto funcBinary = [this](bool canAssign)
+    {
+        this->binary(canAssign);
+    };
+
+    auto funcLiteral = [this](bool canAssign)
+    {
+        this->literal(canAssign);
+    };
+
+    auto funcString = [this](bool canAssign)
+    {
+        this->readString(canAssign);
+    };
+
+    auto funcVariable = [this](bool canAssign)
+    {
+        this->variable(canAssign);
+    };
+
+    auto funcAnd = [this](bool canAssign)
+    {
+        this->and_(canAssign);
+    };
+
+    auto funcOr = [this](bool canAssign)
+    {
+        this->or_(canAssign);
+    };
+
+    auto funcCall = [this](bool canAssign)
+    {
+        this->call(canAssign);
+    };
+
+    this->rules = map<TokenType, ParseRule>{
+            { TokenType::TOKEN_LEFT_PAREN,    { funcGrouping,   funcCall,    Precedence::PREC_CALL }},
+            { TokenType::TOKEN_RIGHT_PAREN,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_LEFT_BRACE,    { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_RIGHT_BRACE,   { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_COMMA,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_DOT,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_MINUS,         { funcUnary,      funcBinary, Precedence::PREC_TERM }},
+            { TokenType::TOKEN_PLUS,          { nullptr,        funcBinary, Precedence::PREC_TERM }},
+            { TokenType::TOKEN_SEMICOLON,     { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_SLASH,         { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
+            { TokenType::TOKEN_STAR,          { nullptr,        funcBinary, Precedence::PREC_FACTOR }},
+            { TokenType::TOKEN_BANG,          { funcUnary,      nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_BANG_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
+            { TokenType::TOKEN_EQUAL,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_EQUAL_EQUAL,   { nullptr,        funcBinary, Precedence::PREC_EQUALITY }},
+            { TokenType::TOKEN_GREATER,       { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+            { TokenType::TOKEN_GREATER_EQUAL, { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+            { TokenType::TOKEN_LESS,          { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+            { TokenType::TOKEN_LESS_EQUAL,    { nullptr,        funcBinary, Precedence::PREC_COMPARISON }},
+            { TokenType::TOKEN_IDENTIFIER,    { funcVariable,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_STRING,        { funcString,     nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_NUMBER,        { funcReadNumber, nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_AND,           { nullptr,        funcAnd,    Precedence::PREC_AND }},
+            { TokenType::TOKEN_CLASS,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_ELSE,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_FALSE,         { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_FOR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_FUN,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_IF,            { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_NIL,           { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_OR,            { nullptr,        funcOr,    Precedence::PREC_OR }},
+            { TokenType::TOKEN_PRINT,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_RETURN,        { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_SUPER,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_THIS,          { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_TRUE,          { funcLiteral,    nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_VAR,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_WHILE,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_ERROR,         { nullptr,        nullptr,    Precedence::PREC_NONE }},
+            { TokenType::TOKEN_EOF,           { nullptr,        nullptr,    Precedence::PREC_NONE }},
+    };
+}
+
+void Compiler::call(bool canAssign)
+{
+    uint8_t argCount = this->argumentList();
+    this->emitBytes(OpCode::OP_CALL, argCount);
+}
+
+uint8_t Compiler::argumentList()
+{
+    uint8_t argCount = 0;
+    if (!check(TokenType::TOKEN_RIGHT_PAREN)) {
+        do {
+            this->expression();
+            if (argCount == 255) {
+                error("Can't have more than 255 arguments.");
+            }
+            argCount++;
+        } while (this->match(TokenType::TOKEN_COMMA));
+    }
+    this->consume(TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+    return argCount;
+}
+
+void Compiler::returnStatement()
+{
+    if (this->type == FunctionType::TYPE_SCRIPT)
+    {
+        error("Can't return from top-level code.");
+    }
+
+    if (match(TokenType::TOKEN_SEMICOLON)) {
+        emitReturn();
+    } else {
+        expression();
+        consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after return value.");
+        emitByte(OpCode::OP_RETURN);
+    }
 }

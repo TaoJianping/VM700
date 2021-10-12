@@ -36,6 +36,7 @@ enum class OpCode : uint8_t
     OP_JUMP,
     OP_JUMP_IF_FALSE,
 	OP_LOOP,
+    OP_CALL,
 	OP_RETURN,
 };
 
@@ -43,12 +44,10 @@ struct Chunk : public vector<uint8_t>
 {
 	ValueArray constants {};
 	vector<size_t> lines {};
-	Object* objects = nullptr;
 
 	void write(uint8_t byte, size_t line);
 	void write(OpCode instruction, size_t line);
 	size_t addConstant(Value value);
-	void addObjects(Object* obj);
 };
 
 

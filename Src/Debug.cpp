@@ -87,6 +87,11 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
         offset = jumpInstruction("OP_LOOP", chunk, offset, -1, opCodeName);
         break;
     }
+    case OpCode::OP_CALL:
+    {
+        offset = byteInstruction("OP_CALL", chunk, offset, opCodeName);
+        break;
+    }
 	case OpCode::OP_RETURN:
 	{
 		offset = this->simpleInstruction("OP_RETURN", offset, opCodeName);

@@ -12,12 +12,16 @@
 using std::vector;
 using std::string;
 
+constexpr const int STACK_MAX = 256;
+
 class VmStack : public vector<Value>
 {
 public:
-	void push(Value value);
+    VmStack();
+    Value* stackTop;
+	void push(const Value& value);
 	Value pop();
-	Value top();
+	[[nodiscard]] Value top() const;
 	string toString();
 };
 

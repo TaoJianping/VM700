@@ -12,6 +12,7 @@ using std::string;
 enum class ObjType : int32_t
 {
     OBJ_FUNCTION,
+    OBJ_NATIVE,
 	OBJ_STRING,
 };
 

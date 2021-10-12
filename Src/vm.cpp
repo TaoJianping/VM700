@@ -9,29 +9,42 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <utility>
 #include "chunk.h"
 #include "Compiler.h"
 #include "ObjFunction.h"
 
 using absl::StrFormat;
 
-
-InterpretResult vm::interpret(Chunk* c)
+uint8_t readByte(CallFrame* frame)
 {
-	this->chunk = c;
-	this->ip = 0;
-	return this->run();
+    return *frame->ip++;
+}
+
+uint16_t readShort(CallFrame* frame)
+{
+    frame->ip += 2;
+    return static_cast<uint16_t>((frame->ip[-2] << 8) | frame->ip[-1]);
+}
+
+Value readConstant(CallFrame* frame)
+{
+    auto i = readByte(frame);
+    return frame->function->getChunk()->constants.at(i);
 }
 
 InterpretResult vm::run()
 {
+    auto frame = this->frames.top();
+
 	for (;;)
 	{
 #ifdef DEBUG_TRACE_EXECUTION
-//		LOG(INFO) << StrFormat("              %s", this->_stack.toString());
-		this->debugger.disassembleInstruction(this->chunk, this->ip);
+		LOG(INFO) << StrFormat("              %s", this->vmStack.toString());
+		this->debugger.disassembleInstruction(frame->function->getChunk(),
+                                              (int)(frame->ip - frame->function->getChunk()->data()));
 #endif
-		uint8_t instruction = this->readByte();
+		uint8_t instruction = readByte(frame);
 		switch (static_cast<OpCode>(instruction))
 		{
 		case OpCode::OP_ADD:
@@ -77,37 +90,51 @@ InterpretResult vm::run()
 		}
         case OpCode::OP_JUMP:
         {
-            uint16_t offset = this->readShort();
-            this->ip += offset;
+            uint16_t offset = readShort(frame);
+            frame->ip += offset;
             break;
         }
         case OpCode::OP_JUMP_IF_FALSE:
         {
-            uint16_t offset = this->readShort();
+            uint16_t offset = readShort(frame);
             if (this->isFalsey(this->peek(0)))
             {
-                this->ip += offset;
+                frame->ip += offset;
             }
             break;
         }
         case OpCode::OP_LOOP:
         {
-            uint16_t offset = this->readShort();
-            this->ip -= offset;
+            uint16_t offset = readShort(frame);
+            frame->ip -= offset;
+            break;
+        }
+        case OpCode::OP_CALL:
+        {
+            int32_t argCount = readByte(frame);
+            if (!this->callValue(peek(argCount), argCount)) {
+                return InterpretResult::INTERPRET_RUNTIME_ERROR;
+            }
+            frame = this->frames.top();
             break;
         }
 		case OpCode::OP_RETURN:
 		{
-//			auto ret = this->pop();
-//			LOG(INFO) << "RETURN -> " << ret.toString();
-			return InterpretResult::INTERPRET_OK;
-			break;
+            Value result = this->pop();
+            this->frames.pop_back();
+            if (this->frames.size() == 0) {
+                this->pop();
+                return InterpretResult::INTERPRET_OK;
+            }
+            vmStack.stackTop = frame->slots;
+            this->push(result);
+            frame = this->frames.top();
+            break;
 		}
 		case OpCode::OP_CONSTANT:
 		{
-			Value constant = this->readConstant();
+			Value constant = readConstant(frame);
 			this->push(constant);
-//			LOG(INFO) << this->debugger.printValue(constant);
 			break;
 		}
 		case OpCode::OP_NIL:
@@ -132,13 +159,13 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_GET_LOCAL:
 		{
-			uint8_t slot = this->readByte();
-			this->push(this->peek(slot));
+			uint8_t slot = readByte(frame);
+			this->push(frame->slots[slot]);
 			break;
 		}
 		case OpCode::OP_SET_LOCAL: {
-			uint8_t slot = this->readByte();
-			this->_stack[slot] = this->peek(0);
+			uint8_t slot = readByte(frame);
+            frame->slots[slot] = this->peek(0);
 			break;
 		}
 		case OpCode::OP_GREATER:
@@ -153,7 +180,7 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_GET_GLOBAL:
 		{
-			auto name = this->chunk->constants.at(this->readByte());
+            auto name = readConstant(frame);
 			auto val = name.asObject();
 			auto str = dynamic_cast<ObjString*>(val);
 
@@ -168,16 +195,13 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_DEFINE_GLOBAL:
 		{
-			auto name = this->chunk->constants.at(this->readByte());
+            auto name = readConstant(frame);
 			auto value = name.asObject();
 			if (value->type != ObjType::OBJ_STRING)
 			{
 				LOG(ERROR) << "TYPE IS WRONG!";
 			}
 			auto s = dynamic_cast<ObjString*>(value);
-//			this->globals.insert({
-//				s, this->peek(0)
-//			});
 			auto v = this->peek(0);
 			this->globals[*s] = v;
 			this->pop();
@@ -185,7 +209,7 @@ InterpretResult vm::run()
 		}
 		case OpCode::OP_SET_GLOBAL:
 		{
-			auto name = this->chunk->constants.at(this->readByte());
+            auto name = readConstant(frame);
 			auto value = name.asObject();
 			if (value->type != ObjType::OBJ_STRING)
 			{
@@ -215,55 +239,25 @@ InterpretResult vm::run()
 	return InterpretResult::INTERPRET_RUNTIME_ERROR;
 }
 
-uint8_t vm::readByte()
-{
-	auto ret = this->chunk->at(this->ip);
-	this->ip++;
-	return ret;
-}
-
-uint16_t vm::readShort()
-{
-    uint8_t a = this->chunk->at(this->ip);
-    uint8_t b = this->chunk->at(this->ip + 1);
-
-    this->ip += 2;
-
-    return (uint16_t)((a << 8) | b);
-}
-
-Value vm::readConstant()
-{
-	auto index = this->readByte();
-	auto value = this->chunk->constants.at(static_cast<size_t>(index));
-	return value;
-}
-
 void vm::push(const Value& value)
 {
-	this->_stack.push(value);
+	this->vmStack.push(value);
 }
 
 Value vm::pop()
 {
-	return this->_stack.pop();
+	return this->vmStack.pop();
 }
 
 Value vm::top()
 {
-	return this->_stack.top();
+	return this->vmStack.top();
 }
 
 InterpretResult vm::binaryOp(const string& op)
 {
 	do
 	{
-
-//		if (!this->peek(0).isNumber() || !this->peek(1).isNumber())
-//		{
-//			this->runtimeError("Operands must be numbers.");
-//			return InterpretResult::INTERPRET_RUNTIME_ERROR;
-//		}
 		if (this->peek(0).isNumber() && this->peek(1).isNumber())
 		{
 			Value b = this->pop();
@@ -320,6 +314,7 @@ InterpretResult vm::binaryOp(const string& op)
 		}
 		else
 		{
+            LOG(INFO) << "operator -> " << op;
 			runtimeError("Operands must be two numbers or two strings.");
 			return InterpretResult::INTERPRET_RUNTIME_ERROR;
 		}
@@ -391,33 +386,27 @@ void vm::runFile(const string& path)
 
 InterpretResult vm::interpret(const string& source)
 {
-	auto c = new Chunk();
-
-	if (!this->compile(source, c))
-	{
-		delete c;
+    auto function = this->compile(source);
+	if (function == nullptr)
 		return InterpretResult::INTERPRET_COMPILE_ERROR;
-	}
 
-	this->chunk = c;
-	this->ip = 0;
+    this->push(function);
+    this->call(function, 0);
 
-	InterpretResult result = this->run();
-	delete c;
+    defineNative("clock", clockNative);
 
+    InterpretResult result = this->run();
 	return result;
 }
 
-bool vm::compile(const string& source, Chunk* c)
+ObjFunction* vm::compile(const string& source)
 {
-	auto compiler = Compiler();
-	return compiler.compile(source, c);
+    return Compiler().compile(source);
 }
 
 Value vm::peek(int distance)
 {
-	auto topStack = this->_stack.size();
-	return this->_stack[topStack - 1 - distance];
+    return vmStack.stackTop[-1 - distance];
 }
 
 void vm::runtimeError(const char* format, ...)
@@ -428,15 +417,23 @@ void vm::runtimeError(const char* format, ...)
 	va_end(args);
 	fputs("\n", stderr);
 
-//	size_t instruction = this->ip - this->chunk->code - 1;
-	int line = this->chunk->lines[this->ip - 1];
-	fprintf(stderr, "[line %d] in script\n", line);
-//	resetStack();
+    for (int32_t i = this->frames.size() - 1; i >= 0; i--) {
+        CallFrame* frame = &this->frames[i];
+        ObjFunction* function = frame->function;
+        size_t instruction = frame->ip - function->chunk.data() - 1;
+        fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
+        if (function->name.empty()) {
+            fprintf(stderr, "script\n");
+        } else {
+            fprintf(stderr, "%s()\n", function->name.c_str());
+        }
+    }
+    // resetStack();
 }
 
 void vm::addObject(Object* object)
 {
-	this->chunk->addObjects(object);
+	this->addObjects(object);
 }
 
 bool vm::isFalsey(Value value)
@@ -473,9 +470,9 @@ vm::~vm()
 
 void vm::freeObjects()
 {
-	if (this->chunk)
+	if (this->objects)
 	{
-		auto obj = this->chunk->objects;
+		auto obj = this->objects;
 		while (obj != nullptr)
 		{
 			auto next = obj->next;
@@ -501,5 +498,76 @@ void vm::freeObject(Object* obj)
             delete func;
             break;
         }
+        case ObjType::OBJ_NATIVE:
+        {
+            auto n = dynamic_cast<ObjNative*>(obj);
+            delete n;
+            break;
+        }
 	}
+}
+
+void vm::addObjects(Object *obj)
+{
+    obj->next = this->objects;
+    this->objects = obj;
+}
+
+bool vm::callValue(Value callee, int32_t argCount)
+{
+    if (callee.isObject()) {
+        switch (callee.type()) {
+            case ValueType::Object:
+            {
+                auto obj = std::get<Object*>(callee);
+                if (obj->type == ObjType::OBJ_NATIVE) {
+                    auto native = dynamic_cast<ObjNative*>(obj);
+                    Value result = native->function(argCount, vmStack.stackTop - argCount);
+                    vmStack.stackTop -= argCount + 1;
+                    this->push(result);
+                    return true;
+                } else if (obj->type == ObjType::OBJ_FUNCTION) {
+                    return call(dynamic_cast<ObjFunction*>(obj), argCount);
+                }
+                else {
+                    runtimeError("NOT SUPPORT OBJ TYPE!");
+                }
+
+            }
+            default:
+                break; // Non-callable object type.
+        }
+    }
+    runtimeError("Can only call functions and classes.");
+    return false;
+}
+
+bool vm::call(ObjFunction *function, int32_t argCount)
+{
+    if (argCount != function->arity)
+    {
+        runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
+        return false;
+    }
+    if (this->frames.size() == FRAMES_MAX)
+    {
+        runtimeError("Stack overflow.");
+        return false;
+    }
+
+    CallFrame* frame = this->frames.newFrame();
+    frame->function = function;
+    frame->ip = function->chunk.data();
+    frame->slots = vmStack.stackTop - argCount - 1 ;
+    return true;
+}
+
+void vm::defineNative(const char *name, NativeFn func) {
+    auto nativeName = new ObjString(name);
+    auto nativeFunc = new ObjNative(std::move(func));
+    push(nativeName);
+    push(nativeFunc);
+    this->globals[*nativeName] = nativeFunc;
+    pop();
+    pop();
 }

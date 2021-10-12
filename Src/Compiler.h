@@ -52,9 +52,9 @@ struct Local
 class Compiler
 {
 private:
-	Scanner* scanner = nullptr;
 	Parser* parser = nullptr;
-//	Chunk* compilingChunk = nullptr;
+    Compiler* enclosing;
+
 	map<TokenType, ParseRule> rules{};
 	Debug debugger {};
 
@@ -169,10 +169,26 @@ private:
 
     void forStatement();
 
+    void funDeclaration();
+
+    void functionBody(FunctionType type);
+
+    void initRules();
+
+    void call(bool canAssign);
+
+    uint8_t argumentList();
+
+    void returnStatement();
+
 public:
 	Compiler();
 
+    Compiler(Compiler* compiler, FunctionType type);
+
 	ObjFunction* compile(const string& source);
+
+    ObjFunction* compileFunc(Parser* p);
 
 	void advance();
 

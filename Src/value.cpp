@@ -4,6 +4,7 @@
 
 #include "value.h"
 #include "absl/strings/str_format.h"
+#include "ObjFunction.h"
 
 void ValueArray::write(Value value)
 {
@@ -100,6 +101,11 @@ string Value::toString()
 		{
 			auto str = dynamic_cast<ObjString*>(obj);
 			s = absl::StrFormat(" %s ", *str);
+		}
+		else if (obj->type == ObjType::OBJ_FUNCTION)
+		{
+			auto fun = dynamic_cast<ObjFunction*>(obj);
+			s = fun->toString();
 		}
 		return s;
 	}

@@ -5,22 +5,23 @@
 #include "VmStack.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_format.h"
+#include "ObjFunction.h"
 
-void VmStack::push(Value value)
+void VmStack::push(const Value& value)
 {
-	this->push_back(value);
+    *stackTop = value;
+    stackTop++;
 }
 
 Value VmStack::pop()
 {
-	auto value = this->back();
-	this->pop_back();
-	return value;
+    stackTop--;
+    return *stackTop;
 }
 
-Value VmStack::top()
+Value VmStack::top() const
 {
-	return this->back();
+	return *(stackTop - 1);
 }
 
 string VmStack::toString()
@@ -28,8 +29,9 @@ string VmStack::toString()
 	using absl::StrFormat;
 
 	string ret {};
-	for (auto value : *this)
+    for (Value* slot = this->data(); slot < stackTop; slot++)
 	{
+        auto value = *slot;
 		if (value.type() == ValueType::NUMBER)
 		{
 			ret += StrFormat("[ %g ]", value.asNumber());
@@ -54,9 +56,26 @@ string VmStack::toString()
 			{
 				auto str = dynamic_cast<ObjString*>(obj);
 				ret += StrFormat("[ %s ]", *str);
-			}
+			} else if (obj->type == ObjType::OBJ_FUNCTION)
+            {
+                auto str = dynamic_cast<ObjFunction*>(obj);
+                ret += StrFormat("[ fn<%s> ]", str->name);
+            }
+            else
+            {
+                ret += "[ NOT SUPPORT EXPR ]";
+            }
 		}
+        else
+        {
+            ret += "[ CANNOT EXPR ]";
+        }
 	}
 
 	return ret;
+}
+
+VmStack::VmStack() : vector<Value>(STACK_MAX)
+{
+    this->stackTop = this->data();
 }

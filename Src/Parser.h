@@ -9,10 +9,9 @@
 
 class Parser
 {
-private:
-	Scanner* scanner;
 public:
 	explicit Parser(Scanner* s);
+	Scanner* scanner;
 
 	bool hadError = false;
 	bool panicMode = false;
