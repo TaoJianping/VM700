@@ -465,6 +465,11 @@ void Compiler::namedVariable(Token* name, bool canAssign)
 		getOp = OpCode::OP_GET_LOCAL;
 		setOp = OpCode::OP_SET_LOCAL;
 	}
+    else if ((arg = resolveUpvalue(current, &name)) != -1)
+    {
+        getOp = OpCode::OP_GET_UPVALUE;
+        setOp = OpCode::OP_SET_UPVALUE;
+    }
 	else
 	{
 		arg = identifierConstant(name);
@@ -719,7 +724,7 @@ void Compiler::functionBody(FunctionType type)
 {
     Compiler compiler(this, type);
     auto func = compiler.compileFunc(this->parser);
-    this->emitBytes(OpCode::OP_CONSTANT, makeConstant(func));
+    emitBytes(OpCode::OP_CLOSURE, makeConstant(func));
 }
 
 Compiler::Compiler(Compiler *enclosing, FunctionType type)

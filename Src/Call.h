@@ -7,13 +7,14 @@
 
 
 #include "ObjFunction.h"
+#include "ObjClosure.h"
 
 constexpr const int FRAMES_MAX = 64;
 
 class CallFrame
 {
 public:
-    ObjFunction* function;
+    ObjClosure* closure;
     uint8_t* ip;
     Value* slots;
 };

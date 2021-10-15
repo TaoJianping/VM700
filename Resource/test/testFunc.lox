@@ -1,5 +1,9 @@
-fun areWeHavingItYet() {
-  print "Yes we are!";
+var x = "global";
+fun outer() {
+  var x = "outer";
+  fun inner() {
+    print x;
+  }
+  inner();
 }
-
-areWeHavingItYet();
+outer();

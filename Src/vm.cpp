@@ -13,6 +13,7 @@
 #include "chunk.h"
 #include "Compiler.h"
 #include "ObjFunction.h"
+#include "ObjClosure.h"
 
 using absl::StrFormat;
 
@@ -30,7 +31,7 @@ uint16_t readShort(CallFrame* frame)
 Value readConstant(CallFrame* frame)
 {
     auto i = readByte(frame);
-    return frame->function->getChunk()->constants.at(i);
+    return frame->closure->function->getChunk()->constants.at(i);
 }
 
 InterpretResult vm::run()
@@ -41,8 +42,8 @@ InterpretResult vm::run()
 	{
 #ifdef DEBUG_TRACE_EXECUTION
 		LOG(INFO) << StrFormat("              %s", this->vmStack.toString());
-		this->debugger.disassembleInstruction(frame->function->getChunk(),
-                                              (int)(frame->ip - frame->function->getChunk()->data()));
+		this->debugger.disassembleInstruction(frame->closure->function->getChunk(),
+                                              (int)(frame->ip - frame->closure->function->getChunk()->data()));
 #endif
 		uint8_t instruction = readByte(frame);
 		switch (static_cast<OpCode>(instruction))
@@ -116,6 +117,15 @@ InterpretResult vm::run()
                 return InterpretResult::INTERPRET_RUNTIME_ERROR;
             }
             frame = this->frames.top();
+            break;
+        }
+        case OpCode::OP_CLOSURE:
+        {
+            auto value = readConstant(frame);
+            auto obj = value.asObject();
+            auto* function = dynamic_cast<ObjFunction*>(obj);
+            auto* closure = new ObjClosure(function);
+            this->push(closure);
             break;
         }
 		case OpCode::OP_RETURN:
@@ -391,7 +401,10 @@ InterpretResult vm::interpret(const string& source)
 		return InterpretResult::INTERPRET_COMPILE_ERROR;
 
     this->push(function);
-    this->call(function, 0);
+    auto* closure = new ObjClosure(function);
+    pop();
+    push(closure);
+    call(closure, 0);
 
     defineNative("clock", clockNative);
 
@@ -419,7 +432,7 @@ void vm::runtimeError(const char* format, ...)
 
     for (int32_t i = this->frames.size() - 1; i >= 0; i--) {
         CallFrame* frame = &this->frames[i];
-        ObjFunction* function = frame->function;
+        ObjFunction* function = frame->closure->function;
         size_t instruction = frame->ip - function->chunk.data() - 1;
         fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
         if (function->name.empty()) {
@@ -504,6 +517,12 @@ void vm::freeObject(Object* obj)
             delete n;
             break;
         }
+        case ObjType::OBJ_CLOSURE:
+        {
+            auto c = dynamic_cast<ObjClosure*>(obj);
+            delete c;
+            break;
+        }
 	}
 }
 
@@ -526,8 +545,8 @@ bool vm::callValue(Value callee, int32_t argCount)
                     vmStack.stackTop -= argCount + 1;
                     this->push(result);
                     return true;
-                } else if (obj->type == ObjType::OBJ_FUNCTION) {
-                    return call(dynamic_cast<ObjFunction*>(obj), argCount);
+                } else if (obj->type == ObjType::OBJ_CLOSURE) {
+                    return call(dynamic_cast<ObjClosure*>(obj), argCount);
                 }
                 else {
                     runtimeError("NOT SUPPORT OBJ TYPE!");
@@ -542,8 +561,18 @@ bool vm::callValue(Value callee, int32_t argCount)
     return false;
 }
 
-bool vm::call(ObjFunction *function, int32_t argCount)
-{
+void vm::defineNative(const char *name, NativeFn func) {
+    auto nativeName = new ObjString(name);
+    auto nativeFunc = new ObjNative(std::move(func));
+    push(nativeName);
+    push(nativeFunc);
+    this->globals[*nativeName] = nativeFunc;
+    pop();
+    pop();
+}
+
+bool vm::call(ObjClosure *closure, int32_t argCount) {
+    auto function = closure->function;
     if (argCount != function->arity)
     {
         runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
@@ -556,18 +585,8 @@ bool vm::call(ObjFunction *function, int32_t argCount)
     }
 
     CallFrame* frame = this->frames.newFrame();
-    frame->function = function;
+    frame->closure = closure;
     frame->ip = function->chunk.data();
     frame->slots = vmStack.stackTop - argCount - 1 ;
     return true;
-}
-
-void vm::defineNative(const char *name, NativeFn func) {
-    auto nativeName = new ObjString(name);
-    auto nativeFunc = new ObjNative(std::move(func));
-    push(nativeName);
-    push(nativeFunc);
-    this->globals[*nativeName] = nativeFunc;
-    pop();
-    pop();
 }

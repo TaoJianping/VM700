@@ -6,6 +6,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_format.h"
 #include "ObjFunction.h"
+#include "ObjClosure.h"
 
 void VmStack::push(const Value& value)
 {
@@ -56,10 +57,16 @@ string VmStack::toString()
 			{
 				auto str = dynamic_cast<ObjString*>(obj);
 				ret += StrFormat("[ %s ]", *str);
-			} else if (obj->type == ObjType::OBJ_FUNCTION)
+			}
+            else if (obj->type == ObjType::OBJ_FUNCTION)
             {
                 auto str = dynamic_cast<ObjFunction*>(obj);
                 ret += StrFormat("[ fn<%s> ]", str->name);
+            }
+            else if (obj->type == ObjType::OBJ_CLOSURE)
+            {
+                auto closure = dynamic_cast<ObjClosure*>(obj);
+                ret += StrFormat("[ fn<%s> ]", closure->function->name);
             }
             else
             {

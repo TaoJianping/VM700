@@ -87,6 +87,13 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
         offset = jumpInstruction("OP_LOOP", chunk, offset, -1, opCodeName);
         break;
     }
+    case OpCode::OP_CLOSURE: {
+        offset++;
+        uint8_t constant = chunk->at(offset++);
+        opCodeName = absl::StrFormat("%-16s %4d ", "OP_CLOSURE", constant)
+                                    + printValue(chunk->constants.at(constant)) + "\n";
+        return offset;
+    }
     case OpCode::OP_CALL:
     {
         offset = byteInstruction("OP_CALL", chunk, offset, opCodeName);

@@ -13,6 +13,7 @@
 #include "VmStack.h"
 #include "Call.h"
 #include "ObjNative.h"
+#include "ObjClosure.h"
 
 using std::map;
 
@@ -56,7 +57,7 @@ private:
     void freeObjects();
 	void freeObject(Object* obj);
 	bool callValue(Value callee, int32_t argCount);
-	bool call(ObjFunction* function, int32_t argCount);
+    bool call(ObjClosure* function, int32_t argCount);
     void defineNative(const char* name, NativeFn function);
 
 public:
