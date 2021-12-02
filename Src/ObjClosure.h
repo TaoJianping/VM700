@@ -6,14 +6,18 @@
 #define VM700TEST_OBJCLOSURE_H
 
 
+#include <vector>
+
 #include "ObjFunction.h"
+#include "ObjUpvalue.h"
+
 
 class ObjClosure : public Object
 {
 public:
     explicit ObjClosure(ObjFunction* objFunction);
     ObjFunction* function;
-
+    std::vector<ObjUpvalue*> upvalues;
 };
 
 

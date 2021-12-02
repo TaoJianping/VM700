@@ -14,6 +14,7 @@
 #include "Compiler.h"
 #include "ObjFunction.h"
 #include "ObjClosure.h"
+#include "ObjUpvalue.h"
 
 using absl::StrFormat;
 
@@ -126,6 +127,15 @@ InterpretResult vm::run()
             auto* function = dynamic_cast<ObjFunction*>(obj);
             auto* closure = new ObjClosure(function);
             this->push(closure);
+			for (int32_t i = 0; i < closure->upvalues.size(); ++i) {
+				uint8_t isLocal = readByte(frame);
+				uint8_t index = readByte(frame);
+				if (isLocal) {
+					closure->upvalues[i] = captureUpvalue(frame->slots + index);
+				} else {
+					closure->upvalues[i] = frame->closure->upvalues[index];
+				}
+			}
             break;
         }
 		case OpCode::OP_RETURN:
@@ -233,6 +243,18 @@ InterpretResult vm::run()
 			}
 			auto top = this->peek(0);
 			this->globals[*s] = top;
+			break;
+		}
+		case OpCode::OP_GET_UPVALUE:
+		{
+			uint8_t slot = readByte(frame);
+			push(*frame->closure->upvalues[slot]->location);
+			break;
+		}
+		case OpCode::OP_SET_UPVALUE:
+		{
+			uint8_t slot = readByte(frame);
+			*frame->closure->upvalues[slot]->location = peek(0);
 			break;
 		}
 		case OpCode::OP_EQUAL:
@@ -523,6 +545,12 @@ void vm::freeObject(Object* obj)
             delete c;
             break;
         }
+		case ObjType::OBJ_UPVALUE:
+		{
+			auto u = dynamic_cast<ObjUpvalue*>(obj);
+			delete u;
+			break;
+		}
 	}
 }
 
@@ -589,4 +617,10 @@ bool vm::call(ObjClosure *closure, int32_t argCount) {
     frame->ip = function->chunk.data();
     frame->slots = vmStack.stackTop - argCount - 1 ;
     return true;
+}
+
+ObjUpvalue* vm::captureUpvalue(Value *local) {
+	ObjUpvalue* upvalue = new ObjUpvalue();
+	upvalue->location = local;
+	return upvalue;
 }

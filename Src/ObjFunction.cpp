@@ -8,6 +8,7 @@ ObjFunction::ObjFunction()
 {
     this->type = ObjType::OBJ_FUNCTION;
     this->arity = 0;
+    this->upValueCount = 0;
     this->name = std::string{};
 }
 

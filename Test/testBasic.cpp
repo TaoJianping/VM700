@@ -122,3 +122,21 @@ TEST(testProgram, testFun5) {
     //	v.execute(argc, argv);
     v.runFile(path);
 }
+
+TEST(testProgram, testClosure) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testClosure.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}
+
+TEST(testProgram, testClosure2) {
+    FLAGS_logtostderr = true;  //输出到控制台
+    //	google::InitGoogleLogging(argv[0]);    // 初始化
+    const std::string path = "../../Resource/test/testClosure2.lox";
+    auto v = vm();
+    //	v.execute(argc, argv);
+    v.runFile(path);
+}

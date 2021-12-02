@@ -21,6 +21,7 @@ class ObjFunction: public Object
 {
 public:
     int32_t arity;
+    int32_t upValueCount;
     Chunk chunk;
     std::string name;
 

@@ -6,6 +6,9 @@
 
 ObjClosure::ObjClosure(ObjFunction *objFunction)
 {
+    upvalues = std::vector<ObjUpvalue*>(objFunction->upValueCount, nullptr);
+
+
     type = ObjType::OBJ_CLOSURE;
     function = objFunction;
 }

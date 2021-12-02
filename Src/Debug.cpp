@@ -5,6 +5,7 @@
 #include "Debug.h"
 #include "glog/logging.h"
 #include "absl/strings/str_format.h"
+#include "ObjFunction.h"
 
 using absl::StrFormat;
 
@@ -92,6 +93,15 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
         uint8_t constant = chunk->at(offset++);
         opCodeName = absl::StrFormat("%-16s %4d ", "OP_CLOSURE", constant)
                                     + printValue(chunk->constants.at(constant)) + "\n";
+
+        auto* function = dynamic_cast<ObjFunction*>(std::get<Object*>(chunk->constants.at(constant)));
+        for (int j = 0; j < function->upValueCount; j++) {
+            int isLocal = chunk->at(offset++);
+            int index = chunk->at(offset++);
+            opCodeName += absl::StrFormat("%04d      |                     %s %d\n",
+                                          offset - 2, isLocal ? "local" : "upvalue", index);
+        }
+
         return offset;
     }
     case OpCode::OP_CALL:
@@ -149,6 +159,17 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
 		offset = this->constantInstruction("OP_SET_GLOBAL", chunk, offset, opCodeName);
 		break;
 	}
+    case OpCode::OP_GET_UPVALUE:
+    {
+        offset = this->byteInstruction("OP_GET_UPVALUE", chunk, offset, opCodeName);
+        break;
+    }
+    case OpCode::OP_SET_UPVALUE:
+    {
+        offset = this->byteInstruction("OP_SET_UPVALUE", chunk, offset, opCodeName);
+        break;
+    }
+
 	case OpCode::OP_CONSTANT:
 	{
 		offset = this->constantInstruction("OP_CONSTANT", chunk, offset, opCodeName);

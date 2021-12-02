@@ -15,6 +15,7 @@ enum class ObjType : int32_t
     OBJ_FUNCTION,
     OBJ_NATIVE,
 	OBJ_STRING,
+    OBJ_UPVALUE,
 };
 
 class Object

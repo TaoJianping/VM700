@@ -49,6 +49,8 @@ private:
 	bool isFalsey(Value value);
 	bool valuesEqual(Value a, Value b);
 
+    ObjUpvalue* captureUpvalue(Value* local);
+
 	string readFile(const string& path);
 	ObjFunction* compile(const string& source);
 	void runtimeError(const char* format, ...);

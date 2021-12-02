@@ -43,10 +43,16 @@ struct ParseRule
 	Precedence precedence;
 };
 
+struct UpValue {
+    uint8_t index;
+    bool isLocal;
+} ;
+
 struct Local
 {
 	Token name;
 	int32_t depth;
+    bool isCaptured = false;
 };
 
 class Compiler
@@ -62,6 +68,7 @@ private:
     FunctionType type = FunctionType::TYPE_SCRIPT;
 
 	Local locals[std::numeric_limits<uint8_t>::max()];
+    UpValue upValues[std::numeric_limits<uint8_t>::max()];
 	int32_t localCount = 0;
 	int32_t scopeDepth = 0;
 
@@ -147,7 +154,9 @@ private:
 
 	bool identifiersEqual(Token* a, Token* b);
 
-	int resolveLocal(Token* name);
+    int resolveLocal(Token* name);
+
+    int32_t resolveLocal(Compiler* enclosing, Token* name);
 
 	void markInitialized();
 
@@ -181,6 +190,10 @@ private:
 
     void returnStatement();
 
+    int32_t resolveUpvalue(Compiler* compiler, Token* name);
+
+    int32_t addUpvalue(Compiler* compiler, uint8_t index, bool isLocal);
+
 public:
 	Compiler();
 
@@ -193,6 +206,8 @@ public:
 	void advance();
 
 	void expression();
+
+    Compiler* getEnclosing();
 };
 
 

@@ -465,7 +465,7 @@ void Compiler::namedVariable(Token* name, bool canAssign)
 		getOp = OpCode::OP_GET_LOCAL;
 		setOp = OpCode::OP_SET_LOCAL;
 	}
-    else if ((arg = resolveUpvalue(current, &name)) != -1)
+    else if ((arg = resolveUpvalue(this, name)) != -1)
     {
         getOp = OpCode::OP_GET_UPVALUE;
         setOp = OpCode::OP_SET_UPVALUE;
@@ -725,6 +725,11 @@ void Compiler::functionBody(FunctionType type)
     Compiler compiler(this, type);
     auto func = compiler.compileFunc(this->parser);
     emitBytes(OpCode::OP_CLOSURE, makeConstant(func));
+
+    for (int i = 0; i < func->upValueCount; i++) {
+        emitByte(compiler.upValues[i].isLocal ? 1 : 0);
+        emitByte(compiler.upValues[i].index);
+    }
 }
 
 Compiler::Compiler(Compiler *enclosing, FunctionType type)
@@ -901,4 +906,64 @@ void Compiler::returnStatement()
         consume(TokenType::TOKEN_SEMICOLON, "Expect ';' after return value.");
         emitByte(OpCode::OP_RETURN);
     }
+}
+
+int32_t Compiler::resolveUpvalue(Compiler *compiler, Token *name) {
+    if (compiler->getEnclosing() == nullptr)
+        return -1;
+
+    int32_t local = resolveLocal(compiler->getEnclosing(), name);
+    if (local != -1)
+    {
+        return addUpvalue(compiler, (uint8_t)local, true);
+    }
+
+    int32_t upValue = resolveUpvalue(compiler->getEnclosing(), name);
+    if (upValue != -1)
+    {
+        return addUpvalue(compiler, (uint8_t)upValue, false);
+    }
+
+    return -1;
+}
+
+Compiler *Compiler::getEnclosing() {
+    return this->enclosing;
+}
+
+int32_t Compiler::addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
+    int32_t upValueCount = compiler->function->upValueCount;
+
+    for (int i = 0; i < upValueCount; i++) {
+        UpValue* ul = &compiler->upValues[i];
+        if (ul->index == index && ul->isLocal == isLocal) {
+            return i;
+        }
+    }
+
+    if (upValueCount == std::numeric_limits<uint8_t>::max()) {
+        error("Too many closure variables in function.");
+        return 0;
+    }
+
+    compiler->upValues[upValueCount].isLocal = isLocal;
+    compiler->upValues[upValueCount].index = index;
+    return compiler->function->upValueCount++;
+}
+
+int32_t Compiler::resolveLocal(Compiler *enclose, Token* name)
+{
+    for (int i = enclose->localCount - 1; i >= 0; i--)
+    {
+        Local* local = &enclose->locals[i];
+        if (identifiersEqual(name, &local->name))
+        {
+            if (local->depth == -1) {
+                this->error("Can't read local variable in its own initializer.");
+            }
+            return i;
+        }
+    }
+
+    return -1;
 }
