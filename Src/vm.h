@@ -35,6 +35,7 @@ private:
 
     CallStack frames {};
 	VmStack vmStack {};
+    ObjUpvalue* openUpvalues = nullptr;
     Object* objects = nullptr;
 
 	map<ObjString, Value> globals;
@@ -61,6 +62,7 @@ private:
 	bool callValue(Value callee, int32_t argCount);
     bool call(ObjClosure* function, int32_t argCount);
     void defineNative(const char* name, NativeFn function);
+    void closeUpvalues(Value* last);
 
 public:
 	InterpretResult interpret(const string& source);

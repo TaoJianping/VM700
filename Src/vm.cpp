@@ -18,21 +18,24 @@
 
 using absl::StrFormat;
 
-uint8_t readByte(CallFrame* frame)
+namespace
 {
-    return *frame->ip++;
-}
+	uint8_t readByte(CallFrame* frame)
+	{
+		return *frame->ip++;
+	}
 
-uint16_t readShort(CallFrame* frame)
-{
-    frame->ip += 2;
-    return static_cast<uint16_t>((frame->ip[-2] << 8) | frame->ip[-1]);
-}
+	uint16_t readShort(CallFrame* frame)
+	{
+		frame->ip += 2;
+		return static_cast<uint16_t>((frame->ip[-2] << 8) | frame->ip[-1]);
+	}
 
-Value readConstant(CallFrame* frame)
-{
-    auto i = readByte(frame);
-    return frame->closure->function->getChunk()->constants.at(i);
+	Value readConstant(CallFrame* frame)
+	{
+		auto i = readByte(frame);
+		return frame->closure->function->getChunk()->constants.at(i);
+	}
 }
 
 InterpretResult vm::run()
@@ -138,9 +141,16 @@ InterpretResult vm::run()
 			}
             break;
         }
+        case OpCode::OP_CLOSE_UPVALUE:
+        {
+            closeUpvalues(vmStack.stackTop - 1);
+            pop();
+            break;
+        }
 		case OpCode::OP_RETURN:
 		{
             Value result = this->pop();
+            closeUpvalues(frame->slots);
             this->frames.pop_back();
             if (this->frames.size() == 0) {
                 this->pop();
@@ -210,7 +220,12 @@ InterpretResult vm::run()
 				return InterpretResult::INTERPRET_COMPILE_ERROR;
 			}
 
-			this->push(this->globals.at(*str));
+            auto& value = this->globals.at(*str);
+
+//            auto obj = value.asObject();
+//            auto closure = dynamic_cast<ObjClosure*>(obj);
+
+			this->push(value);
 			break;
 		}
 		case OpCode::OP_DEFINE_GLOBAL:
@@ -422,9 +437,7 @@ InterpretResult vm::interpret(const string& source)
 	if (function == nullptr)
 		return InterpretResult::INTERPRET_COMPILE_ERROR;
 
-    this->push(function);
-    auto* closure = new ObjClosure(function);
-    pop();
+    auto closure = new ObjClosure(function);
     push(closure);
     call(closure, 0);
 
@@ -620,7 +633,37 @@ bool vm::call(ObjClosure *closure, int32_t argCount) {
 }
 
 ObjUpvalue* vm::captureUpvalue(Value *local) {
-	ObjUpvalue* upvalue = new ObjUpvalue();
-	upvalue->location = local;
-	return upvalue;
+	ObjUpvalue* prevUpvalue = nullptr;
+	ObjUpvalue* upvalue = openUpvalues;
+
+	while (upvalue != nullptr && upvalue->location > local) {
+		prevUpvalue = upvalue;
+		upvalue = upvalue->next;
+	}
+
+	if (upvalue != nullptr && upvalue->location == local) {
+		return upvalue;
+	}
+
+	auto* createdUpvalue = new ObjUpvalue();
+    createdUpvalue->location = local;
+    createdUpvalue->next = upvalue;
+
+    if (prevUpvalue == nullptr) {
+        openUpvalues = createdUpvalue;
+    } else {
+        prevUpvalue->next = createdUpvalue;
+    }
+
+    return createdUpvalue;
+}
+
+void vm::closeUpvalues(Value *last)
+{
+    while (openUpvalues != nullptr && openUpvalues->location >= last) {
+        ObjUpvalue* upvalue = openUpvalues;
+        upvalue->closed = *upvalue->location;
+        upvalue->location = &upvalue->closed;
+        openUpvalues = upvalue->next;
+    }
 }

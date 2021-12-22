@@ -79,6 +79,11 @@ string VmStack::toString()
         }
 	}
 
+    if (ret.empty())
+    {
+        return "[ ]";
+    }
+
 	return ret;
 }
 

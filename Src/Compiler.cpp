@@ -505,7 +505,11 @@ void Compiler::endScope()
 
 	while (this->localCount > 0 && this->locals[this->localCount - 1].depth > this->scopeDepth)
 	{
-		emitByte(OpCode::OP_POP);
+        if (this->locals[this->localCount - 1].isCaptured) {
+            emitByte(OpCode::OP_CLOSE_UPVALUE);
+        } else {
+            emitByte(OpCode::OP_POP);
+        }
 		this->localCount--;
 	}
 }
@@ -915,6 +919,7 @@ int32_t Compiler::resolveUpvalue(Compiler *compiler, Token *name) {
     int32_t local = resolveLocal(compiler->getEnclosing(), name);
     if (local != -1)
     {
+        compiler->getEnclosing()->locals[local].isCaptured = true;
         return addUpvalue(compiler, (uint8_t)local, true);
     }
 

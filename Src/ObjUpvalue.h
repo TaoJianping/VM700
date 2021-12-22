@@ -14,6 +14,8 @@ class ObjUpvalue: public Object
 public:
     std::string toString();
     Value* location;
+    ObjUpvalue* next = nullptr;
+    Value closed = Value(Nil{});
 };
 
 

@@ -98,15 +98,20 @@ size_t Debug::disassembleInstruction(Chunk* chunk, size_t offset)
         for (int j = 0; j < function->upValueCount; j++) {
             int isLocal = chunk->at(offset++);
             int index = chunk->at(offset++);
-            opCodeName += absl::StrFormat("%04d      |                     %s %d\n",
+            opCodeName += absl::StrFormat("                                           %04d     |                     %s %d\n",
                                           offset - 2, isLocal ? "local" : "upvalue", index);
         }
 
-        return offset;
+        break;
     }
     case OpCode::OP_CALL:
     {
         offset = byteInstruction("OP_CALL", chunk, offset, opCodeName);
+        break;
+    }
+    case OpCode::OP_CLOSE_UPVALUE:
+    {
+        offset = this->simpleInstruction("OP_CLOSE_UPVALUE", offset, opCodeName);
         break;
     }
 	case OpCode::OP_RETURN:
